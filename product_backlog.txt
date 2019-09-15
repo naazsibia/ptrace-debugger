@@ -1,8 +1,4 @@
 # User Stories/Bugs (add as appropriate), modify at each Sprint Planning Meeting
-# If a USER STORY is large, break it into smaller user stories.
-# For example, the color chooser user story involves: 
-# 1 Color chooser UI (which could be a USER STORY)
-# 2 Implementation of selected color into the drawing stream.
 --------------------------------------------------------------------------
 
 User Stories

@@ -1,7 +1,3 @@
-# Copy User Stories from the ProductBacklog 
-# to the appropriate Sprint below, after the 
-# Sprint Planning Meeting.
-
 # Sprint 1 Sept 17, 2019
 # Sprint 1 Backlog UserStories go below
 
