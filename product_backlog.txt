@@ -1,0 +1,152 @@
+# User Stories/Bugs (add as appropriate), modify at each Sprint Planning Meeting
+# If a USER STORY is large, break it into smaller user stories.
+# For example, the color chooser user story involves: 
+# 1 Color chooser UI (which could be a USER STORY)
+# 2 Implementation of selected color into the drawing stream.
+--------------------------------------------------------------------------
+
+User Stories
+--------------------------------------------------------------------------
+TYPE     : USER STORY 1 :
+NAME     : Track Fork System Calls
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 2 Hours
+AS A     : user
+I WANT   : to track all forked processes by adding them to an AVL(?) tree as 
+	   nodes
+	
+SO THAT  : I can see:
+	1. Relationships between processes (child process)
+	2. Which processes are currently running
+--------------------------------------------------------------------------
+TYPE     : USER STORY 2 :
+NAME     : Track Pipe calls
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 1 Hour
+AS A     : user
+I WANT   : to add opened pipe fds to the linked-list(?) of currently open fds in a process 
+	   and the children it forks
+	
+SO THAT  : I can see:
+	1. What pipes have been left open by the process 
+--------------------------------------------------------------------------
+TYPE     : USER STORY 3 :
+NAME     : Track Write calls
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 1 Hour
+AS A     : user
+I WANT   : use the process tree to see which state the write call is in and
+	 log the data that is written by a process to an open file descriptor
+SO THAT  : I can see:
+	1. What a process wrote to a pipe to help track communication between
+	processes better
+--------------------------------------------------------------------------
+TYPE     : USER STORY 4 :
+NAME     : Track Read calls
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 1 hour
+AS A     : user
+I WANT   : to log the data that is read by a process from an open file descriptor
+SO THAT  : I can see:
+	1. What a process read from a pipe to help track communication between
+	processes better
+--------------------------------------------------------------------------
+TYPE     : USER STORY 5 :
+NAME     : Track Close and Exit Calls
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 1 hour
+AS A     : user
+I WANT   : to: 
+	- remove processes that aren't currently running and file descriptors
+	that are closed and that them to separate linked lists(?)
+	- store the process's exit status in its node
+SO THAT  : - I can report the process's exit status currently
+           - Stop looking for the process in the process tree and the file 
+	   file descriptor in the list of open file descriptors. Will make it
+	more efficient to insert new processes and file descriptors. 
+--------------------------------------------------------------------------
+TYPE     : USER STORY 6 :
+NAME     : Save recorded data to a csv file
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 1 hour
+AS A     : user
+I WANT   : to: 
+	- add data recorded about processes to a csv file
+SO THAT  : I can use the data and make a graphical representation to help
+	in debugging the code
+--------------------------------------------------------------------------
+TYPE     : USER STORY 7 :
+NAME     : Analyze CSV data in Python
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 3 hours
+AS A     : user
+I WANT   : To use:
+	   - Python's CSV reader module to record CSV data about traced processes
+	 to a dictionary
+	   - Read and write data from log to see what each process wrote to which pipe
+	and which processes read this data 
+SO THAT  : I can use the data and make a graphical representation to help
+	in debugging the code
+--------------------------------------------------------------------------
+TYPE     : USER STORY 8 :
+NAME     : Display parent child relationships in a process tree
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 2 hours
+AS A     : user
+I WANT   : to 
+	- use the processes' dictionary data to make a visual representation
+	of the parent-child relationships between processes
+ 	- add processes' exit codes to a visual representation
+SO THAT  : I can see a visual representation of process parent-child relationships 
+	in the program being traced and the exit codes processes exited with
+--------------------------------------------------------------------------
+TYPE     : USER STORY 9 :
+NAME     : Display pipes visually (hover feature)
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 3 hours
+AS A     : user
+I WANT   : to: 
+	- display the pipes a process opened 
+	- display what each process wrote to a pipe
+	- display what each process read from the pipe
+	- display what file descriptors were left open
+SO THAT  : I can track interprocess communication
+--------------------------------------------------------------------------
+TYPE     : USER STORY 6 :
+NAME     : Error check and report discrepancies
+OWNER    : 
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 2 hours
+AS A     : user
+I WANT   : to compare the observed output from tracing a program with the expected output (provided by an input file)
+SO THAT  : I can report any discrepancies (e.g., incorrect return codes, incorrect process tree structure)
+--------------------------------------------------------------------------
+BUGS # just leaving the template here
+--------------------------------------------------------------------------
+TYPE     : BUG 1 : 
+NAME     : 
+OWNER    : 
+PRIORITY : Urgent; Important; Required
+ESTIMATE : 
+ISSUE    : 
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+
+
+# OMITTED USER STORIES/BUGS BELOW   ###########################################
+
+
+# COMPLETED USER STORIES/BUGS BELOW ###########################################
+
+
+
+
