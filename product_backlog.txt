@@ -5,7 +5,7 @@ User Stories
 --------------------------------------------------------------------------
 TYPE     : USER STORY 1 :
 NAME     : Track Fork System Calls
-OWNER    :
+OWNER    : Naaz
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 2 Hours
 AS A     : user
@@ -18,7 +18,7 @@ SO THAT  : I can see:
 --------------------------------------------------------------------------
 TYPE     : USER STORY 2 :
 NAME     : Track Pipe calls
-OWNER    :
+OWNER    : Naaz
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 1 Hour
 AS A     : user
@@ -30,7 +30,7 @@ SO THAT  : I can see:
 --------------------------------------------------------------------------
 TYPE     : USER STORY 3 :
 NAME     : Track Write calls
-OWNER    :
+OWNER    : Ritvik
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 1 Hour
 AS A     : user
@@ -42,7 +42,7 @@ SO THAT  : I can see:
 --------------------------------------------------------------------------
 TYPE     : USER STORY 4 :
 NAME     : Track Read calls
-OWNER    :
+OWNER    : Ritvik
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 1 hour
 AS A     : user
@@ -53,7 +53,7 @@ SO THAT  : I can see:
 --------------------------------------------------------------------------
 TYPE     : USER STORY 5 :
 NAME     : Track Exit Calls
-OWNER    :
+OWNER    : Sahid
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 1 hour
 AS A     : user
@@ -66,7 +66,7 @@ SO THAT  : - I can report the process's exit status currently
 --------------------------------------------------------------------------
 TYPE     : USER STORY 6 :
 NAME     : Save recorded data to a csv file
-OWNER    :
+OWNER    : Sahid
 PRIORITY : Urgent; Important;Required
 ESTIMATE : 1 hour
 AS A     : user
