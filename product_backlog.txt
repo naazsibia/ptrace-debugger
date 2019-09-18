@@ -136,6 +136,16 @@ SO THAT  : - - Stop looking for the file file descriptor in the list of open fil
 	more efficient to insert new processes and file descriptors.
 	-Keep track of open file descriptors at the end of the program.
 --------------------------------------------------------------------------
+TYPE     : USER STORY 12 :
+NAME     : Design test cases
+OWNER    :
+PRIORITY : Urgent; Important;Required
+ESTIMATE : 24 hours
+AS A     : user
+I WANT   : to test dubugger with multiple C programs  
+SO THAT  : I can see if the debugger fails for any cases
+--------------------------------------------------------------------------
+
 BUGS # just leaving the template here
 --------------------------------------------------------------------------
 TYPE     : BUG 1 :
