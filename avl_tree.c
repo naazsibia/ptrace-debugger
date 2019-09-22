@@ -112,6 +112,7 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     }
     AVLNode *new_tree = insert_node(n, new); // adding node to AVLTree at n 
     if(ppid == 0) return new_tree; 
+
     AVLNode *parent = search(n, ppid);
     if(parent == NULL){
         fprintf(stderr, "Invalid ppid"); // can help with debugging
@@ -119,6 +120,7 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     }
     if(add_child(parent, pid) == -2) perror("malloc");
     new->open_fds = copy_fd_list(parent->open_fds);
+
     return new_tree;
 
 
@@ -358,6 +360,7 @@ int main()
  * p is in the tree at root.
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
+
 int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
     AVLNode *parent = search(root, ppid);
     if(parent == NULL) return -1; 
@@ -369,6 +372,7 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
 int add_child(AVLNode *parent, pid_t pid){
+
     ProcNode* new_child = (ProcNode*) malloc(sizeof(ProcNode)); 
     if(new_child == NULL) return -2;
     new_child->pid = pid;
@@ -436,3 +440,4 @@ FDNode* copy_fd_list(FDNode *head){
     new_head->next =  copy_fd_list(head->next);
     return new_head;
 }
+

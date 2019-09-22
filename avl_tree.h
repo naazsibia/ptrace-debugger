@@ -56,6 +56,7 @@ int height(AVLNode *n);
 FDNode* copy_fd_list(FDNode *head);
 
 /**
+
  * Returns a new node with the given PID
  * and NULL left and right pointers
  **/
@@ -135,6 +136,7 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid);
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
 int add_child(AVLNode *parent, pid_t pid);
+
 /**
  * Add FDnode f to the list of open file descriptors of node with pid p
  * in the tree at the given root,

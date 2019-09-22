@@ -1,4 +1,7 @@
 #include "pdt.h"
+// C++ program to delete a node from AVL Tree 
+#include<bits/stdc++.h> 
+using namespace std; 
 
 int main(int argc, char *argv[]) {
     if (argc == 1){
