@@ -42,6 +42,8 @@ AVLNode* new_node(pid_t pid)
     n->pid   = pid; 
     n->left   = NULL; 
     n->right  = NULL; 
+    n->child = NULL;
+    n->open_fds = NULL;
     n->height = 1;  // new node is initially added at leaf 
     return(n); 
 } 
@@ -118,8 +120,8 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
         fprintf(stderr, "Invalid ppid"); // can help with debugging
         return n;
     }
-    if(add_child(parent, pid) == -2) perror("malloc");
-    new->open_fds = copy_fd_list(parent->open_fds);
+    //if(add_child(parent, pid) == -2) perror("malloc");
+    //new->open_fds = copy_fd_list(parent->open_fds);
 
     return new_tree;
 
@@ -327,13 +329,13 @@ void pre_order(AVLNode *root)
         pre_order(root->right); 
     } 
 } 
-  
-/* Drier program to test above function*/
+/**  
+// Drier program to test above function/
 int main() 
 { 
   AVLNode *root = NULL; 
   
-  /* Constructing tree given in the above figure */
+  // Constructing tree given in the above figure /
   root = insert(root, 10, 0); 
   root = insert(root, 20, 0); 
   root = insert(root, 30, 0); 
@@ -341,13 +343,13 @@ int main()
   root = insert(root, 50, 0); 
   root = insert(root, 25, 0); 
   
-  /* The constructed AVL Tree would be 
-            30 
-           /  \ 
-         20   40 
-        /  \     \ 
-       10  25    50 
-  */
+  // The constructed AVL Tree would be 
+  //          30 
+  //         /  \ 
+  //       20   40 
+  //      /  \     \ 
+  //     10  25    50 
+  //
   
   printf("Preorder traversal of the constructed AVL"
          " tree is \n"); 
@@ -355,6 +357,7 @@ int main()
   
   return 0; 
 } 
+**/
 /**
  * Add a new node with the given pid to the list of children of the AVLNode with pid parent.
  * p is in the tree at root.
@@ -372,10 +375,10 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
 int add_child(AVLNode *parent, pid_t pid){
-
     ProcNode* new_child = (ProcNode*) malloc(sizeof(ProcNode)); 
     if(new_child == NULL) return -2;
     new_child->pid = pid;
+    new_child->next = NULL;
     ProcNode *curr = parent->child;
     if(curr == NULL) parent->child = new_child;
     while(curr->next != NULL) curr = curr->next; 
@@ -393,6 +396,7 @@ int add_fd(AVLNode* root, pid_t p,  int fd){
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
     FDNode* new_fd = (FDNode*) malloc(sizeof(FDNode)); 
+    new_fd->next = NULL;
     if(new_fd == NULL) return -2;
     FDNode *curr = parent->open_fds;
     if(curr == NULL) parent->open_fds = new_fd;
@@ -408,6 +412,7 @@ int add_fd(AVLNode* root, pid_t p,  int fd){
  * Return 0 on success, and -1 if the node is not found
 **/
 int remove_fd(AVLNode* root, pid_t p, int fd){
+    FDNode *temp = NULL;
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
     FDNode *curr = root->open_fds;
@@ -417,12 +422,15 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
     if(curr->fd == fd) parent->open_fds = curr->next;
     while(curr->next != NULL){
         if((curr->next)->fd == fd){
+         temp = curr->next;
          curr->next = (curr->next)->next;
+         free(temp);
          return 0;
         }
         curr = curr->next;  
     }
     return -1; // did not find fd
+
 
 } 
 

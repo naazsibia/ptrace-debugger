@@ -14,7 +14,7 @@
 /* Linux */
 #include <sys/syscall.h>
 #include <sys/ptrace.h>
-
+#include "avl_tree.h"
 /* Constants */
 const int long_size = sizeof(long);
 

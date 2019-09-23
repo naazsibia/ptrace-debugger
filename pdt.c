@@ -1,9 +1,10 @@
 #include "pdt.h"
-// C++ program to delete a node from AVL Tree 
-#include<bits/stdc++.h> 
-using namespace std; 
+
+AVLNode *process_tree;
+
 
 int main(int argc, char *argv[]) {
+    process_tree = NULL;
     if (argc == 1){
         fprintf(stderr,"Too little arguments.\n");
         return 1;
@@ -31,6 +32,7 @@ int do_child(int argc, char **argv) {
 }
 
 int do_trace(pid_t child){
+    process_tree = insert(process_tree, child, 0);
 	int status;
     pid_t newchild;
     struct user_regs_struct regs;
@@ -55,7 +57,6 @@ int do_trace(pid_t child){
            handleRead(child,regs);
         }
 
-
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
     }
     return 0;
@@ -64,9 +65,18 @@ int do_trace(pid_t child){
 
 
 void handleExit(pid_t child){
+
+    return;
 }
 
 void handleFork(pid_t child){
+    pid_t child_forked;
+    ptrace(PTRACE_GETEVENTMSG, child, NULL, (long) &child_forked);
+    printf("%d forked %d\n", child, child_forked);
+    // add child to tree -- this will copy the parents list of open fd's automatically
+    process_tree = insert(process_tree, child_forked, child);
+    pre_order(process_tree);
+
 }
 
 void handleWrite(pid_t child, struct user_regs_struct regs){
