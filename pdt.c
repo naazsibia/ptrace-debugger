@@ -54,7 +54,7 @@ int do_trace(pid_t child){
         }else if (regs.orig_rax == SYS_write){
             handleWrite(newchild,regs);
         } else if (regs.orig_rax == SYS_read){ 
-           handleRead(child,regs);
+           handleRead(newchild,regs);
         }
 
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
@@ -70,9 +70,9 @@ void handleExit(pid_t child){
 }
 
 void handleFork(pid_t child){
-    pid_t child_forked;
-    ptrace(PTRACE_GETEVENTMSG, child, NULL, (long) &child_forked);
-    printf("%d forked %d\n", child, child_forked);
+    long child_forked;
+    ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
+    printf("%d forked %ld\n", child, child_forked);
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
     pre_order(process_tree);
