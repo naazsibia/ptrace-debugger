@@ -14,6 +14,8 @@
 /* Linux */
 #include <sys/syscall.h>
 #include <sys/ptrace.h>
+
+#include "dead_ll.h"
 #include "avl_tree.h"
 /* Constants */
 const int long_size = sizeof(long);
@@ -21,7 +23,7 @@ const int long_size = sizeof(long);
 /* Tracer Functions */
 int do_child(int argc, char **argv);
 int do_trace(pid_t child);
-void handleExit(pid_t child);
+void handleExit(pid_t child, int exit_status);
 void handleFork(pid_t child);
 void handleWrite(pid_t child, struct user_regs_struct regs);
 void handleRead(pid_t child, struct user_regs_struct regs);

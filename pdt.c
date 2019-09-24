@@ -1,10 +1,12 @@
 #include "pdt.h"
 
 AVLNode *process_tree;
+DNode *dnode;
 
 
 int main(int argc, char *argv[]) {
     process_tree = NULL;
+    dnode = NULL;
     if (argc == 1){
         fprintf(stderr,"Too little arguments.\n");
         return 1;
@@ -46,7 +48,7 @@ int do_trace(pid_t child){
         newchild = waitpid(-1,&status,__WALL);
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
-            handleExit(newchild);
+            handleExit(newchild, WEXITSTATUS(status));
             children--;
         }else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
             handleFork(newchild);
@@ -64,8 +66,8 @@ int do_trace(pid_t child){
 }
 
 
-void handleExit(pid_t child){
-
+void handleExit(pid_t child, int exit_status){
+    dnode = insert_dnode(dnode, child, exit_status);
     return;
 }
 
