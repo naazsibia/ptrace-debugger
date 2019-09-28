@@ -28,6 +28,7 @@ typedef struct process_node{
 typedef struct node 
 { 
     int pid; 
+    int debounce; // in a syscall at the moment
     struct node *left; 
     struct node *right; 
     struct node *next; // helps store node in list
@@ -109,7 +110,7 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid);
 /**
  * Return the node with pid p in AVLTree rooted at root
 **/
-AVLNode* search(struct node* root, pid_t p);
+AVLNode* search(AVLNode* root, pid_t p);
 
 /**
  * Insert node with node n2 into tree at node n
@@ -153,3 +154,8 @@ int remove_fd(AVLNode* root, pid_t p, int fd);
  * Prints preorder traversal of tree at root n - helps debug
 **/
 void pre_order(AVLNode *n); 
+
+/**
+ * Prints the FDList (debugging purposes)
+**/
+void print_fd_list(FDNode *head);

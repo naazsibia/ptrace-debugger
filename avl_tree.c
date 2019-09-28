@@ -40,6 +40,7 @@ AVLNode* new_node(pid_t pid)
                         malloc(sizeof(AVLNode)); 
     if(n == NULL) return NULL; // malloc failed
     n->pid   = pid; 
+    n->debounce = 0;
     n->left   = NULL; 
     n->right  = NULL; 
     n->child = NULL;
@@ -120,8 +121,8 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
         fprintf(stderr, "Invalid ppid"); // can help with debugging
         return n;
     }
-    //if(add_child(parent, pid) == -2) perror("malloc");
-    //new->open_fds = copy_fd_list(parent->open_fds);
+    if(add_child(parent, pid) == -2) perror("malloc");
+    new->open_fds = copy_fd_list(parent->open_fds);
 
     return new_tree;
 
@@ -316,19 +317,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
 } 
 
 
-/** A utility function to print preorder traversal 
-* of the tree. 
-* The function also prints height of every node 
-**/
-void pre_order(AVLNode *root) 
-{ 
-    if(root != NULL) 
-    { 
-        printf("%d ", root->pid); 
-        pre_order(root->left); 
-        pre_order(root->right); 
-    } 
-} 
+
 /**  
 // Drier program to test above function/
 int main() 
@@ -380,7 +369,10 @@ int add_child(AVLNode *parent, pid_t pid){
     new_child->pid = pid;
     new_child->next = NULL;
     ProcNode *curr = parent->child;
-    if(curr == NULL) parent->child = new_child;
+    if(curr == NULL) {
+        parent->child = new_child;
+        return 0;
+    }
     while(curr->next != NULL) curr = curr->next; 
     curr->next = new_child; 
     return 0;
@@ -396,12 +388,22 @@ int add_fd(AVLNode* root, pid_t p,  int fd){
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
     FDNode* new_fd = (FDNode*) malloc(sizeof(FDNode)); 
+    new_fd->fd = fd;
     new_fd->next = NULL;
-    if(new_fd == NULL) return -2;
+    if(new_fd == NULL){
+        perror("malloc");
+        return -2;
+    }
     FDNode *curr = parent->open_fds;
-    if(curr == NULL) parent->open_fds = new_fd;
-    while(curr->next != NULL) curr = curr->next;
+    if(curr == NULL){ 
+        parent->open_fds = new_fd;
+        return 0;
+    }
+    while(curr->next != NULL) {
+        curr = curr->next;
+    }
     curr->next = new_fd;
+    print_fd_list(parent->open_fds);
     return 0;
 }
 
@@ -449,3 +451,27 @@ FDNode* copy_fd_list(FDNode *head){
     return new_head;
 }
 
+// debugging functions
+/** A utility function to print preorder traversal 
+* of the tree. 
+* The function also prints height of every node 
+**/
+void pre_order(AVLNode *root) 
+{ 
+    if(root != NULL) 
+    { 
+        printf("%d ", root->pid); 
+        pre_order(root->left); 
+        pre_order(root->right); 
+    } 
+} 
+
+void print_fd_list(FDNode *head){
+    if(head == NULL){
+        printf("Null\n");
+    }
+    else{
+        printf("%d->", head->fd);
+        print_fd_list(head->next);
+    }
+}
