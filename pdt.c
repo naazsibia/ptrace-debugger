@@ -83,15 +83,15 @@ void handleExit(pid_t child, int exit_status){
 void handleFork(pid_t child){
     long child_forked;
     ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
-    printf("%d forked %ld\n", child, child_forked);
+ //   printf("%d forked %ld\n", child, child_forked);
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
-    printf("Preorder of new tree: ");
-    pre_order(process_tree);
-    printf("\n");
+  //  printf("Preorder of new tree: ");
+   // pre_order(process_tree);
+  //  printf("\n");
     AVLNode *child_node = search(process_tree, child_forked);
-    printf("Checking copied fds:\n");
-    print_fd_list(child_node->open_fds);
+   // printf("Checking copied fds:\n");
+   // print_fd_list(child_node->open_fds);
 }
 //Naaz
 /**
@@ -120,14 +120,19 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
-    printf("pipe(%ld) = %d\n", addr, ret_val);
-    printf("piped fds: %d, %d\n", fds[0], fds[1]);
+   // printf("pipe(%ld) = %d\n", addr, ret_val);
+   // printf("piped fds: %d, %d\n", fds[0], fds[1]);
     add_fd(process_tree, child, fds[0]);
     add_fd(process_tree, child, fds[1]);
     free(fds);
 }
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
+    int in_syscall = switch_insyscall(child);
+    if (!in_syscall){
+    char * writtenString = extractString(child,regs.rsi,regs.rdx);
+    printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    }
 }
 
 //Ritvik

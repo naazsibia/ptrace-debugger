@@ -1,6 +1,6 @@
 SUBDIRS = Tests
 OBJ = pdt.o avl_tree.o dead_ll.o
-DEPENDENCIES = pdt.h 
+DEPENDENCIES = pdt.h avl_tree.h dead_ll.h
 .PHONY: ${SUBDIRS} clean
 
 all: start  ${SUBDIRS}
