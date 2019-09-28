@@ -44,20 +44,28 @@ int do_trace(pid_t child){
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
     int children = 1;
     while (children > 0){
-
         newchild = waitpid(-1,&status,__WALL);
+
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
+
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
             handleExit(newchild, WEXITSTATUS(status));
             children--;
-        }else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
+        }
+        else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
             handleFork(newchild);
             children++;
-        }else if (regs.orig_rax == SYS_write){
+        }
+        else if (regs.orig_rax == SYS_write){
             handleWrite(newchild,regs);
-        } else if (regs.orig_rax == SYS_read){ 
+        } 
+        else if (regs.orig_rax == SYS_read){ 
            handleRead(newchild,regs);
         }
+        else if (regs.orig_rax == SYS_pipe){
+            handlePipe(newchild, regs);
+        }
+
 
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
     }
@@ -65,26 +73,91 @@ int do_trace(pid_t child){
 
 }
 
-
+// Sahid
 void handleExit(pid_t child, int exit_status){
     dnode = insert_dnode(dnode, child, exit_status);
     return;
 }
 
+// Naaz
 void handleFork(pid_t child){
     long child_forked;
     ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
     printf("%d forked %ld\n", child, child_forked);
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
+    printf("Preorder of new tree: ");
     pre_order(process_tree);
-
+    printf("\n");
+    AVLNode *child_node = search(process_tree, child_forked);
+    printf("Checking copied fds:\n");
+    print_fd_list(child_node->open_fds);
+}
+//Naaz
+/**
+ * Switches child's debounce in avl_tree and returns
+ * the current value of debounce.
+**/
+int switch_insyscall(pid_t child){
+    AVLNode *child_node = search(process_tree, child);    
+    // check if pid is in syscall
+    if(!child_node->debounce){
+        child_node->debounce = 1;
+        return 1;
+    }
+    child_node->debounce = 0;
+    return 0;
 }
 
+void handlePipe(pid_t child, struct user_regs_struct regs){
+    int* fds;
+    int ret_val;
+    long addr;
+
+    int in_syscall = switch_insyscall(child);
+    if(in_syscall) return; // still don't have returned value
+
+    ret_val = (long)regs.rax;
+    addr = (long)regs.rdi;
+    fds = extractArray(child, addr, 8);
+    printf("pipe(%ld) = %d\n", addr, ret_val);
+    printf("piped fds: %d, %d\n", fds[0], fds[1]);
+    add_fd(process_tree, child, fds[0]);
+    add_fd(process_tree, child, fds[1]);
+    free(fds);
+}
+// Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
 }
 
+//Ritvik
 void handleRead(pid_t child, struct user_regs_struct regs){
+}
+
+
+int * extractArray(pid_t child, long addr, int len){
+    int * array = (int *)malloc(len * sizeof(int));
+    int *laddr;
+    int i, j;
+    union u {
+        long val;
+        int int_array[long_size];
+        }data;
+    i = 0;
+    j = len / long_size;
+    laddr = array;
+    while(i < j){
+        data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * 8, NULL);
+        memcpy(laddr, data.int_array, long_size);
+        ++i;
+        laddr += long_size;
+    }
+    j = len % long_size;
+    if(j != 0) {
+        data.val = ptrace(PTRACE_PEEKDATA,child, addr + i * 8,NULL);
+        memcpy(laddr, data.int_array, j);
+    }
+    return array;
 }
 
 char * extractString(pid_t child, long addr, int len) { 
