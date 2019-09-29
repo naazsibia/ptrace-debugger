@@ -143,6 +143,11 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
 
 //Ritvik
 void handleRead(pid_t child, struct user_regs_struct regs){
+    int in_syscall = switch_insyscall(child);
+    if (in_syscall){
+    char * writtenString = extractString(child,regs.rsi,regs.rdx);
+    printf("%d read %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    }
 }
 
 
