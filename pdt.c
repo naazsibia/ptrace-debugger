@@ -75,7 +75,13 @@ int do_trace(pid_t child){
 
 // Sahid
 void handleExit(pid_t child, int exit_status){
-    dnode = insert_dnode(dnode, child, exit_status);
+    printf("%d exited\n", child);
+    AVLNode *child_node = search(process_tree, child);
+    dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
+    process_tree = delete_node(process_tree, child);
+    printf("Preorder of new tree: ");
+    pre_order(process_tree);
+    printf("\n");
     return;
 }
 
@@ -90,7 +96,7 @@ void handleFork(pid_t child){
     pre_order(process_tree);
     printf("\n");
     AVLNode *child_node = search(process_tree, child_forked);
-    printf("Checking copied fds:\n");
+    printf("Checking copied fds: ");
     print_fd_list(child_node->open_fds);
 }
 //Naaz

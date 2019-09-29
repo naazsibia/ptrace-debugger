@@ -16,7 +16,7 @@
 #include <sys/ptrace.h>
 
 #include "dead_ll.h"
-#include "avl_tree.h"
+//#include "avl_tree.h"
 /* Constants */
 const int long_size = sizeof(long);
 
