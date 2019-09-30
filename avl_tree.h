@@ -137,6 +137,8 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid);
 **/
 int add_child(AVLNode *parent, pid_t pid);
 
+
+void free_the_children(ProcNode *head);
 /**
  * Add FDnode f to the list of open file descriptors of node with pid p
  * in the tree at the given root,
@@ -159,3 +161,5 @@ void pre_order(AVLNode *n);
  * Prints the FDList (debugging purposes)
 **/
 void print_fd_list(FDNode *head);
+
+void free_fd_list(FDNode *head);

@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
     process_tree = NULL;
     dnode = NULL;
     if (argc == 1){
-        fprintf(stderr,"Too little arguments.\n");
+        fprintf(stderr,"[usage] ./pdt ./{exec_name}\n");
         return 1;
     }
 	pid_t child = fork();
@@ -42,11 +42,12 @@ int do_trace(pid_t child){
 	assert(WIFSTOPPED(status));
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
+    printf("Write: %d\n", SYS_write);
     int children = 1;
     while (children > 0){
         newchild = waitpid(-1,&status,__WALL);
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
-
+        printf("newchild: %d, syscall: %lld\n", newchild, regs.orig_rax);
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
         handleExit(newchild, WEXITSTATUS(status));
             children--;
@@ -73,8 +74,8 @@ int do_trace(pid_t child){
 }
 // Sahid
 void handleExit(pid_t child, int exit_status){
-    printf("%d exited\n", child);
     AVLNode *child_node = search(process_tree, child);
+    if(child_node == NULL) return;
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
     printf("Preorder of new tree: ");
@@ -94,6 +95,7 @@ void handleFork(pid_t child){
     pre_order(process_tree);
     printf("\n");
     AVLNode *child_node = search(process_tree, child_forked);
+    if(child_node == NULL) return;
     printf("Checking copied fds: ");
     print_fd_list(child_node->open_fds);
 }
@@ -104,6 +106,7 @@ void handleFork(pid_t child){
 **/
 int switch_insyscall(pid_t child){
     AVLNode *child_node = search(process_tree, child);    
+    if(child_node == NULL) return -1;
     // check if pid is in syscall
     if(!child_node->debounce){
         child_node->debounce = 1;
@@ -111,6 +114,11 @@ int switch_insyscall(pid_t child){
     }
     child_node->debounce = 0;
     return 0;
+}
+
+int in_syscall(pid_t child){
+    AVLNode *child_node = search(process_tree, child);
+    if(child_node != NULL) return child_node->debounce;
 }
 
 void handlePipe(pid_t child, struct user_regs_struct regs){
@@ -133,7 +141,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
-    if (currentNode->debounce == 0){
+    if(currentNode == NULL) return;
+    if (currentNode != NULL && currentNode->debounce == 0){
     currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
     printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
@@ -145,6 +154,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
 //Ritvik
 void handleRead(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
+    if(currentNode == NULL) return;
     if (currentNode->debounce == 1){
     currentNode->debounce = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);

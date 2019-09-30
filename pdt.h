@@ -31,7 +31,7 @@ void handleRead(pid_t child, struct user_regs_struct regs);
 int * extractArray(pid_t child, long addr, int len);
 char * extractString(pid_t child, long addr,int len);
 int switch_insyscall(pid_t child);
-
+int in_syscall(pid_t child);
 /* Useful Definitions */
 #define SETTINGS PTRACE_O_TRACEFORK | PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXIT
 #define WSTOPEVENT(s) (s >> 16)

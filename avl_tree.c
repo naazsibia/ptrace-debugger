@@ -245,7 +245,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
     // if key is same as root's key, then This is 
     // the node to be deleted 
     else
-    { 
+    {   
         // node with only one child or no child 
         if( (root->left == NULL) || (root->right == NULL) ) 
         { 
@@ -379,6 +379,17 @@ int add_child(AVLNode *parent, pid_t pid){
 }
 
 
+void free_the_children(ProcNode *head){
+    ProcNode *temp = NULL;
+    ProcNode *curr = head;
+    while(curr != NULL){
+        temp = curr->next;
+        free(curr);
+        curr = temp;
+    }
+}
+
+
 /**
  * Add a new node with the given fd to the list of open file descriptors of the AVLNode with pid p.
  * p is in the tree at root.
@@ -457,8 +468,11 @@ FDNode* copy_fd_list(FDNode *head){
 * The function also prints height of every node 
 **/
 void pre_order(AVLNode *root) 
-{ 
-    if(root != NULL) 
+{   
+    if(root == NULL){
+        printf("(null)");
+    }
+    else
     { 
         printf("%d ", root->pid); 
         pre_order(root->left); 
@@ -473,5 +487,15 @@ void print_fd_list(FDNode *head){
     else{
         printf("%d->", head->fd);
         print_fd_list(head->next);
+    }
+}
+
+void free_fd_list(FDNode *head){
+    FDNode *temp = NULL;
+    FDNode *curr = head;
+    while(curr != NULL){
+        temp = curr->next;
+        free(curr);
+        curr = temp;
     }
 }
