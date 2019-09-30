@@ -45,11 +45,10 @@ int do_trace(pid_t child){
     int children = 1;
     while (children > 0){
         newchild = waitpid(-1,&status,__WALL);
-
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
 
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
-            handleExit(newchild, WEXITSTATUS(status));
+        handleExit(newchild, WEXITSTATUS(status));
             children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
@@ -57,10 +56,10 @@ int do_trace(pid_t child){
             children++;
         }
         else if (regs.orig_rax == SYS_write){
-            handleWrite(newchild,regs);
+        handleWrite(newchild,regs);
         } 
         else if (regs.orig_rax == SYS_read){ 
-           handleRead(newchild,regs);
+        handleRead(newchild,regs);
         }
         else if (regs.orig_rax == SYS_pipe){
             handlePipe(newchild, regs);
@@ -72,7 +71,6 @@ int do_trace(pid_t child){
     return 0;
 
 }
-
 // Sahid
 void handleExit(pid_t child, int exit_status){
     printf("%d exited\n", child);
@@ -134,20 +132,27 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 }
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
-    int in_syscall = switch_insyscall(child);
-    if (!in_syscall){
+    AVLNode * currentNode = search(process_tree,child);
+    if (currentNode->debounce == 0){
+    currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
     printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    }else{
+        currentNode->debounce = 0;
     }
 }
 
 //Ritvik
 void handleRead(pid_t child, struct user_regs_struct regs){
-    int in_syscall = switch_insyscall(child);
-    if (in_syscall){
+    AVLNode * currentNode = search(process_tree,child);
+    if (currentNode->debounce == 1){
+    currentNode->debounce = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    printf("%d read %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    }else{
+        currentNode->debounce = 1;
     }
+
 }
 
 
