@@ -29,13 +29,15 @@ typedef struct node
 { 
     int pid; 
     int debounce; // in a syscall at the moment
+    int exiting; // in case in a syscall, but has exited
+    int exit_status;
     struct node *left; 
     struct node *right; 
     struct node *next; // helps store node in list
-    //int num_children; // number of child processes
     ProcNode *child; // list of children
     FDNode *open_fds; // list of open fds
     int height; // important for AVL functions
+   
 } AVLNode; 
 
 

@@ -65,8 +65,14 @@ int do_trace(pid_t child){
         else if (regs.orig_rax == SYS_pipe){
             handlePipe(newchild, regs);
         }
-
-
+        // make this effiency better by making each function take a node instead of searching for the node everytime
+        AVLNode *new_child_node = search(process_tree, newchild);
+        if(new_child_node != NULL){
+            printf("Process: %d, in-syscall: %d, exiting: %d\n", new_child_node->pid, new_child_node->debounce, new_child_node->exiting);
+        }
+        if(new_child_node != NULL && !new_child_node->debounce && new_child_node->exiting){
+            handleExit(newchild, new_child_node->exiting);
+        }
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
     }
     return 0;
@@ -76,6 +82,11 @@ int do_trace(pid_t child){
 void handleExit(pid_t child, int exit_status){
     AVLNode *child_node = search(process_tree, child);
     if(child_node == NULL) return;
+    if(child_node->debounce){
+        child_node->exiting = 1;
+        child_node->exit_status = exit_status;
+        return;
+    }
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
     printf("Preorder of new tree: ");
@@ -142,7 +153,7 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 void handleWrite(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
     if(currentNode == NULL) return;
-    if (currentNode != NULL && currentNode->debounce == 0){
+    if (currentNode->debounce == 0){
     currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
     printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes

@@ -41,6 +41,8 @@ AVLNode* new_node(pid_t pid)
     if(n == NULL) return NULL; // malloc failed
     n->pid   = pid; 
     n->debounce = 0;
+    n->exiting = 0;
+    n->exit_status = -1;
     n->left   = NULL; 
     n->right  = NULL; 
     n->child = NULL;
