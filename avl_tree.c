@@ -38,7 +38,11 @@ AVLNode* new_node(pid_t pid)
 { 
     AVLNode* n = (AVLNode*) 
                         malloc(sizeof(AVLNode)); 
-    if(n == NULL) return NULL; // malloc failed
+    if(n == NULL) {
+        fprintf(stderr, "Insert failed\n");
+        perror("malloc");
+        return NULL; // malloc failed
+    }
     n->pid   = pid; 
     n->debounce = 0;
     n->exiting = 0;

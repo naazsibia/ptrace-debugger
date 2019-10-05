@@ -1,4 +1,5 @@
 #include "pdt.h"
+#include <time.h>
 
 AVLNode *process_tree;
 DNode *dnode;
@@ -12,6 +13,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 	pid_t child = fork();
+    if(child < 0){
+        perror("fork");
+        return -1;
+    }
 	if(child == 0) {
 		return do_child(argc - 1, argv + 1);
 	} else {
@@ -29,25 +34,31 @@ int do_child(int argc, char **argv) {
 	args[argc] = NULL;
 
     assert( 0 == ptrace(PTRACE_TRACEME));
-	kill(getpid(), SIGSTOP);
+	if(kill(getpid(), SIGSTOP) < 0) perror("kill");
 	return execvp(args[0], args);
 }
 
 int do_trace(pid_t child){
     process_tree = insert(process_tree, child, 0);
+    if(process_tree == NULL){
+        printf("insert errored");
+        return -1;
+    }
 	int status;
     pid_t newchild;
     struct user_regs_struct regs;
-    waitpid(child, &status, 0);
+    if(waitpid(child, &status, 0) < 0) perror("waitpid");
 	assert(WIFSTOPPED(status));
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
-    printf("Write: %d\n", SYS_write);
+    //printf("Write: %d\n", SYS_write);
     int children = 1;
     while (children > 0){
         newchild = waitpid(-1,&status,__WALL);
+        if(newchild < 0)  perror("waitpid");
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
-        printf("newchild: %d, syscall: %lld\n", newchild, regs.orig_rax);
+        printf("%d\n", newchild);
+       // printf("newchild: %d, syscall: %lld\n", newchild, regs.orig_rax);
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
         handleExit(newchild, WEXITSTATUS(status));
             children--;
@@ -57,10 +68,10 @@ int do_trace(pid_t child){
             children++;
         }
         else if (regs.orig_rax == SYS_write){
-        handleWrite(newchild,regs);
+            handleWrite(newchild,regs);
         } 
         else if (regs.orig_rax == SYS_read){ 
-        handleRead(newchild,regs);
+            handleRead(newchild,regs);
         }
         else if (regs.orig_rax == SYS_pipe){
             handlePipe(newchild, regs);
@@ -68,14 +79,25 @@ int do_trace(pid_t child){
         // make this effiency better by making each function take a node instead of searching for the node everytime
         AVLNode *new_child_node = search(process_tree, newchild);
         if(new_child_node != NULL){
-            printf("Process: %d, in-syscall: %d, exiting: %d\n", new_child_node->pid, new_child_node->debounce, new_child_node->exiting);
+            // printf("Process: %d, in-syscall: %d, exiting: %d\n", new_child_node->pid, new_child_node->debounce, new_child_node->exiting);
         }
         if(new_child_node != NULL && !new_child_node->debounce && new_child_node->exiting){
             handleExit(newchild, new_child_node->exiting);
         }
+        /**
+        sigset_t set , oldset;
+        sigemptyset(&set);
+        sigprocmask (SIG_SETMASK, &set, &oldset );
+        nanosleep((const struct timespec[]){0,100 * 1000000}, NULL);
+        sigprocmask (SIG_SETMASK, &oldset, NULL);
+        **/
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
     }
+    printf("Preorder of new tree: ");
+    pre_order(process_tree);
+    printf("\n");
     return 0;
+
 
 }
 // Sahid
@@ -89,9 +111,9 @@ void handleExit(pid_t child, int exit_status){
     }
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
-    printf("Preorder of new tree: ");
-    pre_order(process_tree);
-    printf("\n");
+  //  printf("Preorder of new tree: ");
+  //  pre_order(process_tree);
+  //  printf("\n");
     return;
 }
 
@@ -99,16 +121,16 @@ void handleExit(pid_t child, int exit_status){
 void handleFork(pid_t child){
     long child_forked;
     ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
-    printf("%d forked %ld\n", child, child_forked);
+   // printf("%d forked %ld\n", child, child_forked);
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
-    printf("Preorder of new tree: ");
-    pre_order(process_tree);
-    printf("\n");
+   // printf("Preorder of new tree: ");
+   // pre_order(process_tree);
+   // printf("\n");
     AVLNode *child_node = search(process_tree, child_forked);
     if(child_node == NULL) return;
-    printf("Checking copied fds: ");
-    print_fd_list(child_node->open_fds);
+   // printf("Checking copied fds: ");
+   // print_fd_list(child_node->open_fds);
 }
 //Naaz
 /**
@@ -143,8 +165,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
-    printf("pipe(%ld) = %d\n", addr, ret_val);
-    printf("piped fds: %d, %d\n", fds[0], fds[1]);
+    //printf("pipe(%ld) = %d\n", addr, ret_val);
+    //printf("piped fds: %d, %d\n", fds[0], fds[1]);
     add_fd(process_tree, child, fds[0]);
     add_fd(process_tree, child, fds[1]);
     free(fds);
@@ -156,7 +178,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if (currentNode->debounce == 0){
     currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+   // printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     }else{
         currentNode->debounce = 0;
     }
@@ -169,7 +191,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     if (currentNode->debounce == 1){
     currentNode->debounce = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+   // printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     }else{
         currentNode->debounce = 1;
     }
@@ -179,6 +201,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
 
 int * extractArray(pid_t child, long addr, int len){
     int * array = (int *)malloc(len * sizeof(int));
+    if(array == NULL) perror("malloc");
     int *laddr;
     int i, j;
     union u {
@@ -204,6 +227,7 @@ int * extractArray(pid_t child, long addr, int len){
 
 char * extractString(pid_t child, long addr, int len) { 
     char * str = (char *)malloc((len+1) * sizeof(char));
+    if(str == NULL) perror("malloc");
     char *laddr;
     int i, j;
     union u {
