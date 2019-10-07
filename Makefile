@@ -1,18 +1,19 @@
 SUBDIRS = Tests
 OBJ = pdt.o avl_tree.o dead_ll.o
 DEPENDENCIES = pdt.h avl_tree.h dead_ll.h
+FLAGS = -fsanitize=address -fsanitize=undefined 
 .PHONY: ${SUBDIRS} clean
 
 all: start  ${SUBDIRS}
 
 start: ${OBJ}
-	@gcc -o pdt ${OBJ}
+	@gcc -o pdt ${OBJ} ${FLAGS}
 
 ${SUBDIRS}:
 	@make -C $@
 
 %.o: %.c ${DEPENDENCIES}
-	@gcc -c $<
+	@gcc -c $< ${FLAGS}
 
 clean:
 	@rm -f *.o ${OBJ}
