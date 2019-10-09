@@ -33,7 +33,7 @@ int do_child(int argc, char **argv) {
 		args[i] = argv[i];
 	args[argc] = NULL;
 
-    assert( 0 == ptrace(PTRACE_TRACEME));
+    assert( 0 == ptrace(PTRACE_TRACEME || PTRACE_O_TRACESYSGOOD));
 	if(kill(getpid(), SIGSTOP) < 0) perror("kill");
 	return execvp(args[0], args);
 }
@@ -51,29 +51,36 @@ int do_trace(pid_t child){
 	assert(WIFSTOPPED(status));
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
-    //printf("Write: %d\n", SYS_write);
+    printf("Write: %d\n", SYS_write);
+    printf("Exit: %d\n", SYS_exit);
     int children = 1;
     while (children > 0){
         newchild = waitpid(-1,&status,__WALL);
-        if(newchild < 0)  perror("waitpid");
+        if(newchild < 0){
+              perror("waitpid"); // if there are no child processes, will not get syscalls
+              break;
+        }
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
-        printf("%d\n", newchild);
-       // printf("newchild: %d, syscall: %lld\n", newchild, regs.orig_rax);
+        //printf("newchild: %d, syscall: %lld, in_syscall: %d\n", newchild, regs.orig_rax, in_syscall(newchild));
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
-        handleExit(newchild, WEXITSTATUS(status));
-            children--;
+            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
+            if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
+            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             handleFork(newchild);
             children++;
         }
         else if (regs.orig_rax == SYS_write){
+            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             handleWrite(newchild,regs);
         } 
         else if (regs.orig_rax == SYS_read){ 
+            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             handleRead(newchild,regs);
         }
         else if (regs.orig_rax == SYS_pipe){
+            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             handlePipe(newchild, regs);
         }
         // make this effiency better by making each function take a node instead of searching for the node everytime
@@ -82,15 +89,17 @@ int do_trace(pid_t child){
             // printf("Process: %d, in-syscall: %d, exiting: %d\n", new_child_node->pid, new_child_node->debounce, new_child_node->exiting);
         }
         if(new_child_node != NULL && !new_child_node->debounce && new_child_node->exiting){
-            handleExit(newchild, new_child_node->exiting);
+            if(handleExit(newchild, new_child_node->exiting) == 0) children --;
         }
         /**
         sigset_t set , oldset;
         sigemptyset(&set);
         sigprocmask (SIG_SETMASK, &set, &oldset );
-        nanosleep((const struct timespec[]){0,100 * 1000000}, NULL);
+        nanosleep((const struct timespec[]){0,10 * 1000000}, NULL);
         sigprocmask (SIG_SETMASK, &oldset, NULL);
         **/
+        
+        
         ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
     }
     printf("Preorder of new tree: ");
@@ -101,20 +110,27 @@ int do_trace(pid_t child){
 
 }
 // Sahid
-void handleExit(pid_t child, int exit_status){
+/**
+ * Remove child from process tree and add it to 
+ * the list of dead processes. If the child node
+ * does not exist in the process tree, return -2,
+ * and if the child node is currently in a syscall, return
+ * -1. Else, return 0.
+**/
+int handleExit(pid_t child, int exit_status){
     AVLNode *child_node = search(process_tree, child);
-    if(child_node == NULL) return;
+    if(child_node == NULL) return -2;
     if(child_node->debounce){
         child_node->exiting = 1;
         child_node->exit_status = exit_status;
-        return;
+        return -1;
     }
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
   //  printf("Preorder of new tree: ");
   //  pre_order(process_tree);
   //  printf("\n");
-    return;
+    return 0;
 }
 
 // Naaz
@@ -173,15 +189,17 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 }
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
-    AVLNode * currentNode = search(process_tree,child);
-    if(currentNode == NULL) return;
-    if (currentNode->debounce == 0){
-    currentNode->debounce = 1;
+   // AVLNode * currentNode = search(process_tree,child);
+   // if(currentNode == NULL) return;
+    //if (currentNode->debounce == 0){
+    //currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-   // printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
-    }else{
-        currentNode->debounce = 0;
-    }
+    //if(switch_insyscall(child) == 1){
+    printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    //} //else{
+        //currentNode->debounce = 0;
+     //   return;
+   // }
 }
 
 //Ritvik
