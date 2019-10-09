@@ -33,7 +33,6 @@ typedef struct node
     int exit_status;
     struct node *left; 
     struct node *right; 
-    struct node *next; // helps store node in list
     ProcNode *child; // list of children
     FDNode *open_fds; // list of open fds
     int height; // important for AVL functions
@@ -165,3 +164,5 @@ void pre_order(AVLNode *n);
 void print_fd_list(FDNode *head);
 
 void free_fd_list(FDNode *head);
+
+void clean_tree(AVLNode* root);

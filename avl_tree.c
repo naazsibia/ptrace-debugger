@@ -505,3 +505,15 @@ void free_fd_list(FDNode *head){
         curr = temp;
     }
 }
+
+
+
+void clean_tree(AVLNode* root){
+    AVLNode* curr = root;
+    if(curr == NULL) return;
+    clean_tree(curr->left);
+    clean_tree(curr->right);
+    free_fd_list(curr->open_fds);
+    free_the_children(curr->child);
+    free(curr);   
+}

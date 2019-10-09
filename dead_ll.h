@@ -10,3 +10,4 @@ typedef struct dead_proc_node{
 
 
 DNode* insert_dnode(DNode* node, pid_t pid, int exit_status, FDNode *open_fds, ProcNode *child);
+void free_list(DNode* head);

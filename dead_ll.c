@@ -27,4 +27,12 @@ DNode* insert_dnode(DNode* node, pid_t pid, int exit_status, FDNode *open_fds, P
     return node;
 }
 
-
+void free_list(DNode* head){
+    DNode* curr = head;
+    DNode* temp;
+    while(curr != NULL){
+        temp = curr->next;
+        free(curr);
+        curr = temp;
+    }
+}

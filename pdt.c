@@ -33,7 +33,7 @@ int do_child(int argc, char **argv) {
 		args[i] = argv[i];
 	args[argc] = NULL;
 
-    assert( 0 == ptrace(PTRACE_TRACEME || PTRACE_O_TRACESYSGOOD));
+    assert( 0 == ptrace(PTRACE_TRACEME));
 	if(kill(getpid(), SIGSTOP) < 0) perror("kill");
 	return execvp(args[0], args);
 }
@@ -105,6 +105,8 @@ int do_trace(pid_t child){
     printf("Preorder of new tree: ");
     pre_order(process_tree);
     printf("\n");
+    clean_tree(process_tree);
+    free_list(dnode);
     return 0;
 
 
@@ -195,7 +197,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     //currentNode->debounce = 1;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
     //if(switch_insyscall(child) == 1){
-    printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    //printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     //} //else{
         //currentNode->debounce = 0;
      //   return;
