@@ -32,7 +32,6 @@ int do_child(int argc, char **argv) {
 	for (i = 0; i < argc; i++)
 		args[i] = argv[i];
 	args[argc] = NULL;
-
     assert( 0 == ptrace(PTRACE_TRACEME));
 	if(kill(getpid(), SIGSTOP) < 0) perror("kill");
 	return execvp(args[0], args);
@@ -51,8 +50,6 @@ int do_trace(pid_t child){
 	assert(WIFSTOPPED(status));
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
-    printf("Write: %d\n", SYS_write);
-    printf("Exit: %d\n", SYS_exit);
     int children = 1;
     while (children > 0){
         newchild = waitpid(-1,&status,__WALL);
@@ -61,33 +58,25 @@ int do_trace(pid_t child){
               break;
         }
         ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
-        //printf("newchild: %d, syscall: %lld, in_syscall: %d\n", newchild, regs.orig_rax, in_syscall(newchild));
+
         if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
-            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
-            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
             handleFork(newchild);
             children++;
         }
-        else if (regs.orig_rax == SYS_write){
-            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
+        else if (regs.orig_rax == SYS_write && status != 0){
             handleWrite(newchild,regs);
         } 
-        else if (regs.orig_rax == SYS_read){ 
-            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
+        else if (regs.orig_rax == SYS_read && status != 0){ 
             handleRead(newchild,regs);
         }
-        else if (regs.orig_rax == SYS_pipe){
-            printf("newchild: %d, syscall: %lld, type: %d\n", newchild, regs.orig_rax, status);
+        else if (regs.orig_rax == SYS_pipe && status != 0){
             handlePipe(newchild, regs);
         }
         // make this effiency better by making each function take a node instead of searching for the node everytime
         AVLNode *new_child_node = search(process_tree, newchild);
-        if(new_child_node != NULL){
-            // printf("Process: %d, in-syscall: %d, exiting: %d\n", new_child_node->pid, new_child_node->debounce, new_child_node->exiting);
-        }
         if(new_child_node != NULL && !new_child_node->debounce && new_child_node->exiting){
             if(handleExit(newchild, new_child_node->exiting) == 0) children --;
         }
@@ -100,7 +89,10 @@ int do_trace(pid_t child){
         **/
         
         
-        ptrace(PTRACE_SYSCALL, newchild, NULL, NULL);
+        if(ptrace(PTRACE_SYSCALL, newchild, NULL, NULL) == ESRCH){
+            delete_node(process_tree, newchild);
+            fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
+        }
     }
     printf("Preorder of new tree: ");
     pre_order(process_tree);
@@ -129,9 +121,6 @@ int handleExit(pid_t child, int exit_status){
     }
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
-  //  printf("Preorder of new tree: ");
-  //  pre_order(process_tree);
-  //  printf("\n");
     return 0;
 }
 
@@ -139,16 +128,11 @@ int handleExit(pid_t child, int exit_status){
 void handleFork(pid_t child){
     long child_forked;
     ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
-   // printf("%d forked %ld\n", child, child_forked);
+    printf("%d forked %ld\n", child, child_forked);
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
-   // printf("Preorder of new tree: ");
-   // pre_order(process_tree);
-   // printf("\n");
     AVLNode *child_node = search(process_tree, child_forked);
     if(child_node == NULL) return;
-   // printf("Checking copied fds: ");
-   // print_fd_list(child_node->open_fds);
 }
 //Naaz
 /**
@@ -183,25 +167,24 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
-    //printf("pipe(%ld) = %d\n", addr, ret_val);
-    //printf("piped fds: %d, %d\n", fds[0], fds[1]);
     add_fd(process_tree, child, fds[0]);
     add_fd(process_tree, child, fds[1]);
     free(fds);
 }
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
-   // AVLNode * currentNode = search(process_tree,child);
-   // if(currentNode == NULL) return;
-    //if (currentNode->debounce == 0){
-    //currentNode->debounce = 1;
-    char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    //if(switch_insyscall(child) == 1){
-    //printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
-    //} //else{
-        //currentNode->debounce = 0;
-     //   return;
-   // }
+    AVLNode * currentNode = search(process_tree,child);
+    if(currentNode == NULL) {
+        return;
+    }
+    if (currentNode->debounce == 0){
+        char * writtenString = extractString(child,regs.rsi,regs.rdx);
+        currentNode->debounce = 1;
+        printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    } else{
+        currentNode->debounce = 0;
+        return;
+    }
 }
 
 //Ritvik
@@ -211,12 +194,14 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     if (currentNode->debounce == 1){
     currentNode->debounce = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-   // printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     }else{
         currentNode->debounce = 1;
     }
 
 }
+
+
 
 
 int * extractArray(pid_t child, long addr, int len){

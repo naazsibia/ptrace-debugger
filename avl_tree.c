@@ -264,9 +264,10 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
                 temp = root; 
                 root = NULL; 
             } 
-            else // One child case 
+            else{ // One child case 
              *root = *temp; // Copy the contents of 
                             // the non-empty child 
+            }
             free(temp); 
         } 
         else
@@ -277,7 +278,10 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
   
             // Copy the inorder successor's data to this node 
             root->pid = temp->pid; 
-  
+            root->debounce = temp->debounce;
+            root->exiting = temp->exiting;
+            root->open_fds = temp->open_fds;
+            root->child = temp->child;
             // Delete the inorder successor 
             root->right = delete_node(root->right, temp->pid); 
         } 
@@ -480,7 +484,7 @@ void pre_order(AVLNode *root)
     }
     else
     { 
-        printf("%d ", root->pid); 
+        printf("%d(debounce: %d) ", root->pid, root->debounce); 
         pre_order(root->left); 
         pre_order(root->right); 
     } 
