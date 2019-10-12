@@ -63,6 +63,7 @@ int do_trace(pid_t child){
             if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
+            printf("fork from %d\n", newchild);
             handleFork(newchild);
             children++;
         }
@@ -73,7 +74,12 @@ int do_trace(pid_t child){
             handleRead(newchild,regs);
         }
         else if (regs.orig_rax == SYS_pipe && status != 0){
+            printf("handle pipe from %d\n", newchild);
             handlePipe(newchild, regs);
+        }
+        else if (regs.orig_rax == SYS_close && status != 0){
+            //printf("handle close from %d\n", newchild);
+            handleClose(newchild, regs.rdi);
         }
         // make this effiency better by making each function take a node instead of searching for the node everytime
         AVLNode *new_child_node = search(process_tree, newchild);
@@ -117,10 +123,12 @@ int handleExit(pid_t child, int exit_status){
     if(child_node->debounce){
         child_node->exiting = 1;
         child_node->exit_status = exit_status;
+        printf("Pid %d tried to exit\n", child);
         return -1;
     }
     dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
     process_tree = delete_node(process_tree, child);
+    printf("Pid %d exited\n", child);
     return 0;
 }
 
@@ -132,8 +140,8 @@ void handleFork(pid_t child){
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
     AVLNode *child_node = search(process_tree, child_forked);
-    if(child_node == NULL) return;
 }
+
 //Naaz
 /**
  * Switches child's debounce in avl_tree and returns
@@ -163,13 +171,25 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 
     int in_syscall = switch_insyscall(child);
     if(in_syscall) return; // still don't have returned value
-
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
     add_fd(process_tree, child, fds[0]);
     add_fd(process_tree, child, fds[1]);
+    printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
+}
+
+//Naaz
+void handleClose(pid_t child, int fd){
+    
+    printf("Process %d closed fd %d\n", child, fd);
+    int ret = remove_fd(process_tree, child, fd);
+    if(ret != 0){
+        fprintf(stderr, "FD not found\n");
+    }
+    
+    
 }
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){

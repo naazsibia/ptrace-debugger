@@ -28,6 +28,7 @@ void handleFork(pid_t child);
 void handlePipe(pid_t child, struct user_regs_struct regs);
 void handleWrite(pid_t child, struct user_regs_struct regs);
 void handleRead(pid_t child, struct user_regs_struct regs);
+void handleClose(pid_t child, int fd);
 int * extractArray(pid_t child, long addr, int len);
 char * extractString(pid_t child, long addr,int len);
 int switch_insyscall(pid_t child);

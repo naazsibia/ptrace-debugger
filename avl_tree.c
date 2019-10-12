@@ -51,6 +51,7 @@ AVLNode* new_node(pid_t pid)
     n->right  = NULL; 
     n->child = NULL;
     n->open_fds = NULL;
+    n->closed_fds = NULL;
     n->height = 1;  // new node is initially added at leaf 
     return(n); 
 } 
@@ -424,9 +425,9 @@ int add_fd(AVLNode* root, pid_t p,  int fd){
         curr = curr->next;
     }
     curr->next = new_fd;
-    print_fd_list(parent->open_fds);
     return 0;
 }
+
 
 
 /**
@@ -438,19 +439,23 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
     FDNode *temp = NULL;
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
-    FDNode *curr = root->open_fds;
+    FDNode *curr = parent->open_fds;
     // no open fds
     if(curr == NULL) return -1;
     // head is fd
-    if(curr->fd == fd) parent->open_fds = curr->next;
-    while(curr->next != NULL){
-        if((curr->next)->fd == fd){
+    if(curr->fd == fd) {
+        parent->open_fds = curr->next;
+        free(curr);
+        return 0;
+    }
+    while(curr->next != NULL && (curr->next)->fd != fd){
+        curr = curr->next;  
+    }
+    if(curr->next != NULL && (curr->next)->fd == fd){
          temp = curr->next;
          curr->next = (curr->next)->next;
          free(temp);
          return 0;
-        }
-        curr = curr->next;  
     }
     return -1; // did not find fd
 
@@ -461,7 +466,7 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
  * Returns a copy of the list at head
 **/
 FDNode* copy_fd_list(FDNode *head){
-    if(head == NULL) return head;
+    if(head == NULL) return NULL;
     FDNode *new_head = (FDNode *) malloc(sizeof(FDNode));
     if(new_head == NULL){
         perror("malloc");
@@ -495,7 +500,7 @@ void print_fd_list(FDNode *head){
         printf("Null\n");
     }
     else{
-        printf("%d->", head->fd);
+        printf("%d (%p)->", head->fd, &head);
         print_fd_list(head->next);
     }
 }
