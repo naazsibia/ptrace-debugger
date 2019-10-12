@@ -181,6 +181,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
         currentNode->debounce = 1;
         printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+        free(writtenString);
     } else{
         currentNode->debounce = 0;
         return;
@@ -195,6 +196,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     currentNode->debounce = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
     printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    free(writtenString);
     }else{
         currentNode->debounce = 1;
     }

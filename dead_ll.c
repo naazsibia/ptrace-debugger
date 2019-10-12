@@ -32,6 +32,8 @@ void free_list(DNode* head){
     DNode* temp;
     while(curr != NULL){
         temp = curr->next;
+        free_the_children(curr->child);
+        free_fd_list(curr->open_fds);
         free(curr);
         curr = temp;
     }

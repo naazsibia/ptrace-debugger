@@ -515,6 +515,7 @@ void free_fd_list(FDNode *head){
 void clean_tree(AVLNode* root){
     AVLNode* curr = root;
     if(curr == NULL) return;
+    printf("freeing: %d\n", root->pid);
     clean_tree(curr->left);
     clean_tree(curr->right);
     free_fd_list(curr->open_fds);
