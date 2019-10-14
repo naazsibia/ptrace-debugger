@@ -63,11 +63,11 @@ int do_trace(pid_t child){
             if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
-            printf("fork from %d\n", newchild);
             handleFork(newchild);
             children++;
         }
         else if (regs.orig_rax == SYS_write && status != 0){
+            //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
             handleWrite(newchild,regs);
         } 
         else if (regs.orig_rax == SYS_read && status != 0){ 
@@ -140,6 +140,7 @@ void handleFork(pid_t child){
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
     AVLNode *child_node = search(process_tree, child_forked);
+    ptrace(PTRACE_SYSCALL, child_forked, NULL, NULL);
 }
 
 //Naaz
@@ -182,16 +183,12 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 
 //Naaz
 void handleClose(pid_t child, int fd){
-    
-    printf("Process %d closed fd %d\n", child, fd);
-    int ret = remove_fd(process_tree, child, fd);
-    if(ret != 0){
-        fprintf(stderr, "FD not found\n");
-    }
-    
-    print_fd_list((search(process_tree, child))->open_fds);
-    
+        int ret = remove_fd(process_tree, child, fd);
+        if(ret != 0) return;
+            //fprintf(stderr, "FD not found\n"); -- don't need for now
+        else  printf("Process %d closed fd %d\n", child, fd);
 }
+
 // Ritvik
 void handleWrite(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);

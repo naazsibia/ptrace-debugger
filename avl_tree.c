@@ -121,10 +121,9 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     }
     AVLNode *new_tree = insert_node(n, new); // adding node to AVLTree at n 
     if(ppid == 0) return new_tree; 
-
-    AVLNode *parent = search(n, ppid);
+    AVLNode *parent = search(new_tree, ppid);
     if(parent == NULL){
-        fprintf(stderr, "Invalid ppid"); // can help with debugging
+        fprintf(stderr, "Invalid ppid\n"); // can help with debugging
         return n;
     }
     if(add_child(parent, pid) == -2) perror("malloc");
