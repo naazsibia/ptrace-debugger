@@ -189,6 +189,7 @@ void handleClose(pid_t child, int fd){
         fprintf(stderr, "FD not found\n");
     }
     
+    print_fd_list((search(process_tree, child))->open_fds);
     
 }
 // Ritvik

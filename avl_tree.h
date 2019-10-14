@@ -35,7 +35,6 @@ typedef struct node
     struct node *right; 
     ProcNode *child; // list of children
     FDNode *open_fds; // list of open fds
-    FDNode *closed_fds; // list of closed fds
     int height; // important for AVL functions
    
 } AVLNode; 

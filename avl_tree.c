@@ -51,7 +51,6 @@ AVLNode* new_node(pid_t pid)
     n->right  = NULL; 
     n->child = NULL;
     n->open_fds = NULL;
-    n->closed_fds = NULL;
     n->height = 1;  // new node is initially added at leaf 
     return(n); 
 } 
