@@ -124,11 +124,10 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     AVLNode *parent = search(new_tree, ppid);
     if(parent == NULL){
         fprintf(stderr, "Invalid ppid\n"); // can help with debugging
-        return n;
+        return new_tree;
     }
     if(add_child(parent, pid) == -2) perror("malloc");
     new->open_fds = copy_fd_list(parent->open_fds);
-
     return new_tree;
 
 
@@ -364,7 +363,10 @@ int main()
 
 int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
     AVLNode *parent = search(root, ppid);
-    if(parent == NULL) return -1; 
+    if(parent == NULL) {
+        fprintf(stderr, "Invalid ppid %d\n", ppid);
+        return -1; 
+    }
     return add_child(parent, pid);
 }
 

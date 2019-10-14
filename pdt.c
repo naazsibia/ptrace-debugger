@@ -40,7 +40,7 @@ int do_child(int argc, char **argv) {
 int do_trace(pid_t child){
     process_tree = insert(process_tree, child, 0);
     if(process_tree == NULL){
-        printf("insert errored");
+        fprintf(stderr, "Insert failed\n");
         return -1;
     }
 	int status;
@@ -52,29 +52,34 @@ int do_trace(pid_t child){
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
     int children = 1;
     while (children > 0){
-        newchild = waitpid(-1,&status,__WALL);
+        newchild = waitpid(-1, &status, __WALL);
         if(newchild < 0){
               perror("waitpid"); // if there are no child processes, will not get syscalls
               break;
         }
-        ptrace(PTRACE_GETREGS,newchild,NULL,&regs);
-
-        if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
+        if(ptrace(PTRACE_GETREGS, newchild, NULL, &regs) == ESRCH){
+            delete_node(process_tree, newchild);
+            fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
+        }
+        printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
+        
+        if (regs.orig_rax == SYS_write && status != 0){
+            //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
+            handleWrite(newchild,regs);
+        }
+        
+        else if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
             if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
         }
         else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
             handleFork(newchild);
             children++;
         }
-        else if (regs.orig_rax == SYS_write && status != 0){
-            //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
-            handleWrite(newchild,regs);
-        } 
+       
         else if (regs.orig_rax == SYS_read && status != 0){ 
             handleRead(newchild,regs);
         }
         else if (regs.orig_rax == SYS_pipe && status != 0){
-            printf("handle pipe from %d\n", newchild);
             handlePipe(newchild, regs);
         }
         else if (regs.orig_rax == SYS_close && status != 0){
@@ -119,7 +124,10 @@ int do_trace(pid_t child){
 **/
 int handleExit(pid_t child, int exit_status){
     AVLNode *child_node = search(process_tree, child);
-    if(child_node == NULL) return -2;
+    if(child_node == NULL){ 
+        printf("Pid %d isn't in the process tree\n", child);
+        return -2;
+    }
     if(child_node->debounce){
         child_node->exiting = 1;
         child_node->exit_status = exit_status;
