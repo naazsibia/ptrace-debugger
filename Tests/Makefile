@@ -1,4 +1,4 @@
-TESTS = multiple_siblings simple_fork
+TESTS = multiple_siblings simple_fork Blank onePrint simple_pipe mixFork
 CC = @gcc
 all: ${TESTS}
 .PHONY: clean
