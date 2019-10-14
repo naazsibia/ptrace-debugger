@@ -61,9 +61,9 @@ int do_trace(pid_t child){
             delete_node(process_tree, newchild);
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
         }
-        printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
+        //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
         
-        if (regs.orig_rax == SYS_write && status != 0){
+        if (regs.orig_rax == SYS_write && status == 34175){
             //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
             handleWrite(newchild,regs);
         }
@@ -104,6 +104,7 @@ int do_trace(pid_t child){
             delete_node(process_tree, newchild);
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
         }
+        //printf("After: newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
     }
     printf("Preorder of new tree: ");
     pre_order(process_tree);
@@ -148,7 +149,7 @@ void handleFork(pid_t child){
     // add child to tree -- this will copy the parents list of open fd's automatically
     process_tree = insert(process_tree, child_forked, child);
     AVLNode *child_node = search(process_tree, child_forked);
-    ptrace(PTRACE_SYSCALL, child_forked, NULL, NULL);
+    ptrace(PTRACE_SETOPTIONS, child_forked, NULL, SETTINGS);
 }
 
 //Naaz
