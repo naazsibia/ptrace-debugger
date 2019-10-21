@@ -1,6 +1,10 @@
 // for pid_t
 #include <sys/types.h>
-// credits: https://www.geeksforgeeks.org/avl-tree-set-2-deletion/
+
+/**
+ * This file contains datastructures that will be used to track processes
+ * and file descriptors that pdt traces. 
+**/
 
 /**
  * LinkedList for storing the open file descriptors in 
@@ -23,14 +27,16 @@ typedef struct process_node{
  * smaller PIDs than the root are stored in the left subtree while
  * nodes with bigger PIDs than the root are stored in the right subtree.
  * This recursively applies to all the trees in the BST. 
+ * 
+ * // credits: https://www.geeksforgeeks.org/avl-tree-set-2-deletion/
  **/ 
 // An AVL tree node 
 typedef struct node 
 { 
     int pid; 
-    int debounce; // in a syscall at the moment
-    int exiting; // in case in a syscall, but has exited
-    int exit_status;
+    int in_syscall; // flag to be raised if process is in a syscall at the moment
+    int exiting; // flag to be raised in case process in a syscall, but has exited
+    int exit_status; 
     struct node *left; 
     struct node *right; 
     ProcNode *child; // list of children
@@ -155,7 +161,7 @@ int remove_fd(AVLNode* root, pid_t p, int fd);
 /**
  * Return 1 if fd is in the fd list, else return 0. 
 **/
-int fd_in_list(FDNode *head, int fd);
+int fd_in_list(FDNode *head, int);
 
 /**
  * Prints preorder traversal of tree at root n - helps debug
@@ -166,10 +172,12 @@ void pre_order(AVLNode *n);
  * Prints the FDList (debugging purposes)
 **/
 void print_fd_list(FDNode *head);
+
 /**
  * Frees the FD list 
 **/
 void free_fd_list(FDNode *head);
+
 /**
  * Frees all the AVL nodes in the given tree 
  * along with the nodes' open fds, and linked list

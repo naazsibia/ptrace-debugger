@@ -26,6 +26,9 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+/**
+ * Make child indicate that it wants to be traced, and exec into child program.
+**/
 int do_child(int argc, char **argv) {
 	char *args [argc + 1];
 	int i;
@@ -37,6 +40,9 @@ int do_child(int argc, char **argv) {
 	return execvp(args[0], args);
 }
 
+/**
+ * Trace syscalls that child and its successors make.
+**/
 int do_trace(pid_t child){
     process_tree = insert(process_tree, child, 0);
     if(process_tree == NULL){
@@ -75,40 +81,35 @@ int do_trace(pid_t child){
             handleFork(newchild);
             children++;
         }
-       
-        else if (regs.orig_rax == SYS_read && status != 0){ 
+
+        else if (regs.orig_rax == SYS_read && status != 34175){ 
             handleRead(newchild,regs);
         }
-        else if (regs.orig_rax == SYS_pipe && status != 0){
+        else if (regs.orig_rax == SYS_pipe && status != 34175){
             handlePipe(newchild, regs);
         }
-        else if (regs.orig_rax == SYS_close && status != 0){
+        else if (regs.orig_rax == SYS_close && status != 34175){
             //printf("handle close from %d\n", newchild);
             handleClose(newchild, regs.rdi);
         }
-        // make this effiency better by making each function take a node instead of searching for the node everytime
+
         AVLNode *new_child_node = search(process_tree, newchild);
-        if(new_child_node != NULL && !new_child_node->debounce && new_child_node->exiting){
+        // if child has existed and isn't in a syscall, remove it from the process tree
+        if(new_child_node != NULL && !new_child_node->in_syscall && new_child_node->exiting){
             if(handleExit(newchild, new_child_node->exiting) == 0) children --;
         }
-        /**
-        sigset_t set , oldset;
-        sigemptyset(&set);
-        sigprocmask (SIG_SETMASK, &set, &oldset );
-        nanosleep((const struct timespec[]){0,10 * 1000000}, NULL);
-        sigprocmask (SIG_SETMASK, &oldset, NULL);
-        **/
         
-        
+        // child exited unexpectedly, can't trace it anymore
         if(ptrace(PTRACE_SYSCALL, newchild, NULL, NULL) == ESRCH){
             delete_node(process_tree, newchild);
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
         }
-        //printf("After: newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
     }
+    /**
     printf("Preorder of new tree: ");
-    pre_order(process_tree);
+    pre_order(process_tree); -- for debugging purposes
     printf("\n");
+    **/
     clean_tree(process_tree);
     free_list(dnode);
     return 0;
@@ -116,6 +117,7 @@ int do_trace(pid_t child){
 
 }
 // Sahid
+
 /**
  * Remove child from process tree and add it to 
  * the list of dead processes. If the child node
@@ -129,7 +131,7 @@ int handleExit(pid_t child, int exit_status){
         printf("Pid %d isn't in the process tree\n", child);
         return -2;
     }
-    if(child_node->debounce){
+    if(child_node->in_syscall){
         child_node->exiting = 1;
         child_node->exit_status = exit_status;
         printf("Pid %d tried to exit\n", child);
@@ -142,6 +144,12 @@ int handleExit(pid_t child, int exit_status){
 }
 
 // Naaz
+/**
+ * Extract PID of child forked, and insert it into the
+ * Process tree, its parents list of children, and copy
+ * its parent's list of open fds.
+ * 
+**/
 void handleFork(pid_t child){
     long child_forked;
     ptrace(PTRACE_GETEVENTMSG, child, NULL, &child_forked);
@@ -154,26 +162,33 @@ void handleFork(pid_t child){
 
 //Naaz
 /**
- * Switches child's debounce in avl_tree and returns
- * the current value of debounce.
+ * Switches child's in_syscall in avl_tree and returns
+ * the current value of in_syscall.
 **/
 int switch_insyscall(pid_t child){
     AVLNode *child_node = search(process_tree, child);    
     if(child_node == NULL) return -1;
     // check if pid is in syscall
-    if(!child_node->debounce){
-        child_node->debounce = 1;
+    if(!child_node->in_syscall){
+        child_node->in_syscall = 1;
         return 1;
     }
-    child_node->debounce = 0;
+    child_node->in_syscall = 0;
     return 0;
 }
 
+/**
+ * Return 1 if child is in syscall, else return 0.
+**/
 int in_syscall(pid_t child){
     AVLNode *child_node = search(process_tree, child);
-    if(child_node != NULL) return child_node->debounce;
+    if(child_node != NULL) return child_node->in_syscall;
 }
 
+/**
+ * Add the fds created by pipe() to child's list of open
+ * fds. 
+**/
 void handlePipe(pid_t child, struct user_regs_struct regs){
     int* fds;
     int ret_val;
@@ -190,8 +205,9 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     free(fds);
 }
 
-//Naaz
-void handleClose(pid_t child, int fd){
+/**
+ * Remove the closed fds from child's list of open fds. 
+**/void handleClose(pid_t child, int fd){
         int ret = remove_fd(process_tree, child, fd);
         if(ret != 0) return;
             //fprintf(stderr, "FD not found\n"); -- don't need for now
@@ -204,13 +220,13 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if(currentNode == NULL) {
         return;
     }
-    if (currentNode->debounce == 0){
+    if (currentNode->in_syscall == 0){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
-        currentNode->debounce = 1;
+        currentNode->in_syscall = 1;
         printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
         free(writtenString);
     } else{
-        currentNode->debounce = 0;
+        currentNode->in_syscall = 0;
         return;
     }
 }
@@ -219,20 +235,22 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
 void handleRead(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
     if(currentNode == NULL) return;
-    if (currentNode->debounce == 1){
-    currentNode->debounce = 0;
+    if (currentNode->in_syscall == 1){
+    currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    printf("%d reads %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
+    printf("%d reads %s to File Descriptor: %lld with %lld bytes\n", child, writtenString, regs.rdi, regs.rdx); //For Development Purposes
     free(writtenString);
     }else{
-        currentNode->debounce = 1;
+        currentNode->in_syscall = 1;
     }
 
 }
 
 
 
-
+/**
+ * Extract len ints given a memory address addr.
+**/
 int * extractArray(pid_t child, long addr, int len){
     int * array = (int *)malloc(len * sizeof(int));
     if(array == NULL) perror("malloc");

@@ -24,11 +24,12 @@ int height(AVLNode *n)
 /**
  * Returns the max of pids p1 and p2
  * */
-int max(pid_t a, pid_t b) 
+int max(pid_t p1, pid_t p2) 
 { 
-    return (a > b)? a : b; 
+    return (p1 > p2)? p1 : p2; 
 } 
   
+// Functions for AVL Tree
 
 /**
  * Returns a new node with the given PID
@@ -36,15 +37,14 @@ int max(pid_t a, pid_t b)
  **/
 AVLNode* new_node(pid_t pid) 
 { 
-    AVLNode* n = (AVLNode*) 
-                        malloc(sizeof(AVLNode)); 
+    AVLNode* n = (AVLNode*) malloc(sizeof(AVLNode)); 
     if(n == NULL) {
         fprintf(stderr, "Insert failed\n");
         perror("malloc");
         return NULL; // malloc failed
     }
     n->pid   = pid; 
-    n->debounce = 0;
+    n->in_syscall = 0;
     n->exiting = 0;
     n->exit_status = -1;
     n->left   = NULL; 
@@ -276,7 +276,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
   
             // Copy the inorder successor's data to this node 
             root->pid = temp->pid; 
-            root->debounce = temp->debounce;
+            root->in_syscall = temp->in_syscall;
             root->exiting = temp->exiting;
             root->open_fds = temp->open_fds;
             root->child = temp->child;
@@ -325,42 +325,13 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
 } 
 
 
+// Functions to track list of children and open-fds
 
-/**  
-// Drier program to test above function/
-int main() 
-{ 
-  AVLNode *root = NULL; 
-  
-  // Constructing tree given in the above figure /
-  root = insert(root, 10, 0); 
-  root = insert(root, 20, 0); 
-  root = insert(root, 30, 0); 
-  root = insert(root, 40, 0); 
-  root = insert(root, 50, 0); 
-  root = insert(root, 25, 0); 
-  
-  // The constructed AVL Tree would be 
-  //          30 
-  //         /  \ 
-  //       20   40 
-  //      /  \     \ 
-  //     10  25    50 
-  //
-  
-  printf("Preorder traversal of the constructed AVL"
-         " tree is \n"); 
-  pre_order(root); 
-  
-  return 0; 
-} 
-**/
 /**
  * Add a new node with the given pid to the list of children of the AVLNode with pid parent.
  * p is in the tree at root.
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
-
 int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
     AVLNode *parent = search(root, ppid);
     if(parent == NULL) {
@@ -369,6 +340,7 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid){
     }
     return add_child(parent, pid);
 }
+
 
 /**
  * Add a new node with the given pid to the list of children of parent.
@@ -387,17 +359,6 @@ int add_child(AVLNode *parent, pid_t pid){
     while(curr->next != NULL) curr = curr->next; 
     curr->next = new_child; 
     return 0;
-}
-
-
-void free_the_children(ProcNode *head){
-    ProcNode *temp = NULL;
-    ProcNode *curr = head;
-    while(curr != NULL){
-        temp = curr->next;
-        free(curr);
-        curr = temp;
-    }
 }
 
 
@@ -492,6 +453,7 @@ FDNode* copy_fd_list(FDNode *head){
 }
 
 // debugging functions
+
 /** A utility function to print preorder traversal 
 * of the tree. 
 * The function also prints height of every node 
@@ -503,12 +465,15 @@ void pre_order(AVLNode *root)
     }
     else
     { 
-        printf("%d(debounce: %d) ", root->pid, root->debounce); 
+        printf("%d(in_syscall: %d) ", root->pid, root->in_syscall); 
         pre_order(root->left); 
         pre_order(root->right); 
     } 
 } 
 
+/**
+ * Prints the FDList (debugging purposes)
+**/
 void print_fd_list(FDNode *head){
     if(head == NULL){
         printf("Null\n");
@@ -519,6 +484,12 @@ void print_fd_list(FDNode *head){
     }
 }
 
+
+// Cleaning functions
+
+/**
+ * Frees the FD list 
+**/
 void free_fd_list(FDNode *head){
     FDNode *temp = NULL;
     FDNode *curr = head;
@@ -529,8 +500,11 @@ void free_fd_list(FDNode *head){
     }
 }
 
-
-
+/**
+ * Frees all the AVL nodes in the given tree 
+ * along with the nodes' open fds, and linked list
+ * of children. 
+**/
 void clean_tree(AVLNode* root){
     AVLNode* curr = root;
     if(curr == NULL) return;
@@ -540,4 +514,17 @@ void clean_tree(AVLNode* root){
     free_fd_list(curr->open_fds);
     free_the_children(curr->child);
     free(curr);   
+}
+
+/**
+ * Free list of children 
+**/
+void free_the_children(ProcNode *head){
+    ProcNode *temp = NULL;
+    ProcNode *curr = head;
+    while(curr != NULL){
+        temp = curr->next;
+        free(curr);
+        curr = temp;
+    }
 }
