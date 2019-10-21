@@ -138,8 +138,6 @@ int add_child_ppid(AVLNode* root, pid_t ppid, pid_t pid);
 **/
 int add_child(AVLNode *parent, pid_t pid);
 
-
-void free_the_children(ProcNode *head);
 /**
  * Add FDnode f to the list of open file descriptors of node with pid p
  * in the tree at the given root,
@@ -153,6 +151,12 @@ int add_fd(AVLNode* root, pid_t p,  int fd);
 **/
 int remove_fd(AVLNode* root, pid_t p, int fd); 
 
+
+/**
+ * Return 1 if fd is in the fd list, else return 0. 
+**/
+int fd_in_list(FDNode *head, int fd);
+
 /**
  * Prints preorder traversal of tree at root n - helps debug
 **/
@@ -162,7 +166,18 @@ void pre_order(AVLNode *n);
  * Prints the FDList (debugging purposes)
 **/
 void print_fd_list(FDNode *head);
-
+/**
+ * Frees the FD list 
+**/
 void free_fd_list(FDNode *head);
-
+/**
+ * Frees all the AVL nodes in the given tree 
+ * along with the nodes' open fds, and linked list
+ * of children. 
+**/
 void clean_tree(AVLNode* root);
+
+/**
+ * Free list of children 
+**/
+void free_the_children(ProcNode *head);

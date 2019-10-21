@@ -463,6 +463,20 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
 } 
 
 /**
+ * Return 1 if fd is in the fd list, else return 0. 
+**/
+int fd_in_list(FDNode *head, int fd){
+    FDNode *curr = head;
+    while(curr != NULL){
+        if(curr->fd == fd) return 1;
+        curr = curr->next;
+    }
+    return 0;
+}
+
+
+
+/**
  * Returns a copy of the list at head
 **/
 FDNode* copy_fd_list(FDNode *head){
