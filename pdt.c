@@ -67,34 +67,33 @@ int do_trace(pid_t child){
             delete_node(process_tree, newchild);
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
         }
-        //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
-        
-        if (regs.orig_rax == SYS_write && status == 34175){
-            //printf("newchild: %d, syscall: %lld, type: %d, in syscall: %d\n", newchild, regs.orig_rax, status, in_syscall(newchild));
-            handleWrite(newchild,regs);
+           
+        if(WIFSTOPPED(status) && (WSTOPSIG(status) == (SIGTRAP|0x80))){
+            if(regs.orig_rax == SYS_write){
+                handleWrite(newchild,regs);
+            }
+            else if (regs.orig_rax == SYS_read){ 
+                handleRead(newchild,regs);
+            }
+            else if (regs.orig_rax == SYS_pipe){
+                handlePipe(newchild, regs);
+            }
+            else if (regs.orig_rax == SYS_close){
+                handleClose(newchild, regs.rdi);
+            }
         }
-        
-        else if (WSTOPEVENT(status) == PTRACE_EVENT_EXIT){
-            if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
-        }
-        else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
-            handleFork(newchild);
-            children++;
-        }
-
-        else if (regs.orig_rax == SYS_read && status != 34175){ 
-            handleRead(newchild,regs);
-        }
-        else if (regs.orig_rax == SYS_pipe && status != 34175){
-            handlePipe(newchild, regs);
-        }
-        else if (regs.orig_rax == SYS_close && status != 34175){
-            //printf("handle close from %d\n", newchild);
-            handleClose(newchild, regs.rdi);
+        else if (WIFSTOPPED(status)){
+            if (status>>8 == (SIGTRAP | (PTRACE_EVENT_EXIT<<8))){
+                if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
+            }
+            else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
+                handleFork(newchild);
+                children++;
+            }
         }
 
         AVLNode *new_child_node = search(process_tree, newchild);
-        // if child has existed and isn't in a syscall, remove it from the process tree
+        // if child has exited and isn't in a syscall, remove it from the process tree
         if(new_child_node != NULL && !new_child_node->in_syscall && new_child_node->exiting){
             if(handleExit(newchild, new_child_node->exiting) == 0) children --;
         }
@@ -105,11 +104,11 @@ int do_trace(pid_t child){
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
         }
     }
-    /**
+    
     printf("Preorder of new tree: ");
-    pre_order(process_tree); -- for debugging purposes
+    pre_order(process_tree); 
     printf("\n");
-    **/
+    
     clean_tree(process_tree);
     free_list(dnode);
     return 0;
