@@ -39,6 +39,8 @@ typedef struct node
     int exit_status; 
     struct node *left; 
     struct node *right; 
+    int num_children;
+    int num_open_fds;
     ProcNode *child; // list of children
     FDNode *open_fds; // list of open fds
     int height; // important for AVL functions

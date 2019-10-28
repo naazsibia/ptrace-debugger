@@ -108,7 +108,7 @@ int do_trace(pid_t child){
     printf("Preorder of new tree: ");
     pre_order(process_tree); 
     printf("\n");
-    
+    csvWrite("test.csv");
     clean_tree(process_tree);
     free_list(dnode);
     return 0;
@@ -136,7 +136,8 @@ int handleExit(pid_t child, int exit_status){
         printf("Pid %d tried to exit\n", child);
         return -1;
     }
-    dnode = insert_dnode(dnode, child, exit_status, child_node->open_fds, child_node->child);
+    // edit to just pass node in
+    dnode = insert_dnode(dnode, exit_status, child_node);
     process_tree = delete_node(process_tree, child);
     printf("Pid %d exited\n", child);
     return 0;
@@ -245,6 +246,35 @@ void handleRead(pid_t child, struct user_regs_struct regs){
 
 }
 
+
+int csvWrite(char * filename){
+    FILE *file;
+    if((file = fopen(filename, "w+")) == NULL) return -1;
+    DNode *curr = dnode;
+    while(curr != NULL){
+        writeNodeData(curr, file);
+        curr = curr->next;
+    }
+    return 0;
+
+}
+
+void writeNodeData(DNode *node, FILE *file){
+    fprintf(file, "%d, %d, %d, ", node->pid, node->exit_status, node->num_children);
+    ProcNode *curr = node->child;
+    while(curr != NULL){
+        fprintf(file, "%d, ", curr->pid);
+        curr = curr->next;
+    }
+
+    fprintf(file, "%d, ", node->num_open_fds);
+    FDNode *curr2 = node->open_fds;
+    while(curr2 != NULL){
+        fprintf(file, "%d, ", curr2->fd);
+        curr2 = curr2->next;
+    }
+    fprintf(file, "\n");
+}
 
 
 /**
