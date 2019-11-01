@@ -178,7 +178,7 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
     add_fd(process_tree, child, get_inode(child,fds[0]));
-    //add_fd(process_tree, child, get_inode(fds[1]));
+     add_fd(process_tree, child, get_inode(child,fds[1]));
     printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
 }
@@ -186,7 +186,7 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 /**
  * Remove the closed fds from child's list of open fds. 
 **/void handleClose(pid_t child, int fd){
-        int ret = remove_fd(process_tree, child, fd);
+        int ret = remove_fd(process_tree, child, get_inode(child,fd));
         if(ret != 0) return;
             //fprintf(stderr, "FD not found\n"); -- don't need for now
         else  printf("Process %d closed fd %d\n", child, fd);
@@ -198,6 +198,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if(currentNode == NULL) {
         return;
     }
+    if (fd_in_list(currentNode->open_fds,get_inode(child,regs.rdi)) == 0) return;
     if (currentNode->in_syscall == 0){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
         currentNode->in_syscall = 1;
