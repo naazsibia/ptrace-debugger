@@ -177,8 +177,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
-    add_fd(process_tree, child, fds[0]);
-    add_fd(process_tree, child, fds[1]);
+    add_fd(process_tree, child, get_inode(child,fds[0]));
+    //add_fd(process_tree, child, get_inode(fds[1]));
     printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
 }
@@ -212,7 +212,9 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
 //Ritvik
 void handleRead(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
-    if(currentNode == NULL) return;
+    if(currentNode == NULL ) return;
+    int fd = (int) regs.rdi;
+    if (fd_in_list(currentNode->open_fds,get_inode(child,fd)) == 0) return;
     if (currentNode->in_syscall == 1){
     currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
