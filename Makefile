@@ -1,6 +1,6 @@
 SUBDIRS = Tests
 OBJ = pdt.o avl_tree.o dead_ll.o
-DEPENDENCIES = pdt.h avl_tree.h dead_ll.h
+DEPENDENCIES = pdt.h avl_tree.h dead_ll.h log.h
 FLAGS = -fsanitize=address -fsanitize=undefined 
 .PHONY: ${SUBDIRS} clean
 

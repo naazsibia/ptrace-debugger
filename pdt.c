@@ -3,6 +3,7 @@
 
 AVLNode *process_tree;
 DNode *dnode;
+LogStart * process_log;
 
 
 int main(int argc, char *argv[]) {
@@ -45,6 +46,9 @@ int do_child(int argc, char **argv) {
 **/
 int do_trace(pid_t child){
     process_tree = insert(process_tree, child, 0);
+    process_log->Head = NULL;
+    process_log->size = 0;
+    process_log->Tail = NULL;
     if(process_tree == NULL){
         fprintf(stderr, "Insert failed\n");
         return -1;
