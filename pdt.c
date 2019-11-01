@@ -57,6 +57,7 @@ int do_trace(pid_t child){
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
     int children = 1;
+
     while (children > 0){
         newchild = waitpid(-1, &status, __WALL);
         if(newchild < 0){
@@ -80,6 +81,8 @@ int do_trace(pid_t child){
             }
             else if (regs.orig_rax == SYS_close){
                 handleClose(newchild, regs.rdi);
+            } else if (regs.orig_rax == SYS_open){
+                printf("OPENED\n");
             }
         }
         else if (WIFSTOPPED(status)){
@@ -160,31 +163,6 @@ void handleFork(pid_t child){
     ptrace(PTRACE_SETOPTIONS, child_forked, NULL, SETTINGS);
 }
 
-//Naaz
-/**
- * Switches child's in_syscall in avl_tree and returns
- * the current value of in_syscall.
-**/
-int switch_insyscall(pid_t child){
-    AVLNode *child_node = search(process_tree, child);    
-    if(child_node == NULL) return -1;
-    // check if pid is in syscall
-    if(!child_node->in_syscall){
-        child_node->in_syscall = 1;
-        return 1;
-    }
-    child_node->in_syscall = 0;
-    return 0;
-}
-
-/**
- * Return 1 if child is in syscall, else return 0.
-**/
-int in_syscall(pid_t child){
-    AVLNode *child_node = search(process_tree, child);
-    if(child_node != NULL) return child_node->in_syscall;
-}
-
 /**
  * Add the fds created by pipe() to child's list of open
  * fds. 
@@ -243,9 +221,33 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     }else{
         currentNode->in_syscall = 1;
     }
-
 }
 
+
+//Naaz
+/**
+ * Switches child's in_syscall in avl_tree and returns
+ * the current value of in_syscall.
+**/
+int switch_insyscall(pid_t child){
+    AVLNode *child_node = search(process_tree, child);    
+    if(child_node == NULL) return -1;
+    // check if pid is in syscall
+    if(!child_node->in_syscall){
+        child_node->in_syscall = 1;
+        return 1;
+    }
+    child_node->in_syscall = 0;
+    return 0;
+}
+
+/**
+ * Return 1 if child is in syscall, else return 0.
+**/
+int in_syscall(pid_t child){
+    AVLNode *child_node = search(process_tree, child);
+    if(child_node != NULL) return child_node->in_syscall;
+}
 
 int csvWrite(char * filename){
     FILE *file;
@@ -258,6 +260,24 @@ int csvWrite(char * filename){
     return 0;
 
 }
+
+int is_pipe(int child,int fd){
+    char buffer[80];
+    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
+    struct stat info;
+    if (stat(buffer,&info) == -1) return -1;
+    return S_ISFIFO(info.st_mode);
+}
+
+int get_inode(int child, int fd){
+    char buffer[80];
+    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
+    struct stat info;
+    if (stat(buffer,&info) == -1) return -1;
+    return info.st_ino;
+}
+
+ 
 
 void writeNodeData(DNode *node, FILE *file){
     fprintf(file, "%d, %d, %d, ", node->pid, node->exit_status, node->num_children);

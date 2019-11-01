@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 /* POSIX */
 #include <unistd.h>
@@ -33,11 +34,13 @@ int * extractArray(pid_t child, long addr, int len);
 char * extractString(pid_t child, long addr,int len);
 int switch_insyscall(pid_t child);
 int in_syscall(pid_t child);
+int is_pipe(int child, int fd);
+int get_inode(int child, int fd);
 int csvWrite(char * filename);
-void writeNodeData(DNode *node, FILE *file);
+void writeNodeData(DNode *node, FILE* file);
 /* Useful Definitions */
 #define SETTINGS PTRACE_O_TRACEFORK | PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXIT
 #define WSTOPEVENT(s) (s >> 16)
-
+#define MAXSIZE 500
 
 
