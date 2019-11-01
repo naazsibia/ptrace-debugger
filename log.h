@@ -18,5 +18,6 @@ typedef struct Log{
 } LogStart;
 
 void AddLog(LogStart *, LogNode *);
+void Initialize(LogStart ** );
 LogNode * RemoveLog(LogStart *);
 LogNode * NewLogNode(char action,int from,int to,int fd,char * data);
