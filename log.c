@@ -21,11 +21,10 @@ void AddLog(LogStart * process_log,LogNode * NodeToAdd){
     process_log->size++;
 }
 
-LogNode * NewLogNode(char action,int from,int to,int fd,char * data){
+LogNode * NewLogNode(char action,int child,int fd,char * data){
     LogNode * newNode = malloc(sizeof(LogNode));
     newNode->action = action;
-    newNode->from = from;
-    newNode->to = to;
+    newNode->process = child;
     newNode->fd = fd;
     newNode->data = data;
     newNode->next = NULL;

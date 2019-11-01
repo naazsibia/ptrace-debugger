@@ -83,9 +83,7 @@ int do_trace(pid_t child){
             }
             else if (regs.orig_rax == SYS_close){
                 handleClose(newchild, regs.rdi);
-            } else if (regs.orig_rax == SYS_open){
-                printf("OPENED\n");
-            }
+            } 
         }
         else if (WIFSTOPPED(status)){
             if (status>>8 == (SIGTRAP | (PTRACE_EVENT_EXIT<<8))){
@@ -114,6 +112,13 @@ int do_trace(pid_t child){
     pre_order(process_tree); 
     printf("\n");
     csvWrite("test.csv");
+    
+    //REMOVE THIS LATER WHEN WRIITNG CSV MAKE SURE TO FREE NODES
+    while(process_log->size != 0){
+        LogNode * node = RemoveLog(process_log);
+        free(node->data);
+        free(node);
+    }
     free(process_log);
     clean_tree(process_tree);
     free_list(dnode);
@@ -205,8 +210,9 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if (currentNode->in_syscall == 0){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
         currentNode->in_syscall = 1;
+        LogNode * node = NewLogNode('W',child,get_inode(child,(int) regs.rdi),writtenString);
+        AddLog(process_log,node);
         printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
-        free(writtenString);
     } else{
         currentNode->in_syscall = 0;
         return;
@@ -222,8 +228,9 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     if (currentNode->in_syscall == 1){
     currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
+     LogNode * node = NewLogNode('R',child,get_inode(child,(int) regs.rdi),writtenString);
+    AddLog(process_log,node);
     printf("%d reads %s to File Descriptor: %lld with %lld bytes\n", child, writtenString, regs.rdi, regs.rdx); //For Development Purposes
-    free(writtenString);
     }else{
         currentNode->in_syscall = 1;
     }
