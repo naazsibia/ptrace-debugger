@@ -39,6 +39,7 @@ int is_pipe(int child, int fd);
 int get_inode(int child, int fd);
 int csvWrite(char * filename);
 void writeNodeData(DNode *node, FILE* file);
+void writeLogData(LogNode *node, FILE *file);
 /* Useful Definitions */
 #define SETTINGS PTRACE_O_TRACEFORK | PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXIT
 #define WSTOPEVENT(s) (s >> 16)

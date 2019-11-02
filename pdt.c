@@ -4,7 +4,7 @@
 AVLNode *process_tree;
 DNode *dnode;
 LogStart * process_log = NULL;
-
+int dead_children = 0;
 
 int main(int argc, char *argv[]) {
     process_tree = NULL;
@@ -59,6 +59,7 @@ int do_trace(pid_t child){
 	assert(0 == ptrace(PTRACE_SETOPTIONS, child, NULL, SETTINGS));
 	ptrace(PTRACE_SYSCALL, child, NULL, NULL);
     int children = 1;
+    
 
     while (children > 0){
         newchild = waitpid(-1, &status, __WALL);
@@ -150,6 +151,7 @@ int handleExit(pid_t child, int exit_status){
     // edit to just pass node in
     dnode = insert_dnode(dnode, exit_status, child_node);
     process_tree = delete_node(process_tree, child);
+    dead_children++;
     printf("Pid %d exited\n", child);
     return 0;
 }
@@ -228,7 +230,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     if (currentNode->in_syscall == 1){
     currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-     LogNode * node = NewLogNode('R',child,get_inode(child,(int) regs.rdi),writtenString);
+    LogNode * node = NewLogNode('R', child, get_inode(child,(int) regs.rdi), writtenString);
     AddLog(process_log,node);
     printf("%d reads %s to File Descriptor: %lld with %lld bytes\n", child, writtenString, regs.rdi, regs.rdx); //For Development Purposes
     }else{
@@ -266,31 +268,26 @@ int csvWrite(char * filename){
     FILE *file;
     if((file = fopen(filename, "w+")) == NULL) return -1;
     DNode *curr = dnode;
+    fprintf(file, "%d\n", dead_children);
     while(curr != NULL){
         writeNodeData(curr, file);
         curr = curr->next;
+    }
+    LogNode *start = process_log->Head;
+    while(start != NULL){
+        writeLogData(start, file);
+        start = start->next;
     }
     return 0;
 
 }
 
-int is_pipe(int child,int fd){
-    char buffer[80];
-    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
-    struct stat info;
-    if (stat(buffer,&info) == -1) return -1;
-    return S_ISFIFO(info.st_mode);
-}
+void writeLogData(LogNode *node, FILE *file){
+    fprintf(file, "%c, %d, %d, %s\n", node->action, node->process, node->fd, node->data);
+} 
 
-int get_inode(int child, int fd){
-    char buffer[80];
-    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
-    struct stat info;
-    if (stat(buffer,&info) == -1) return -1;
-    return info.st_ino;
-}
 
- 
+
 
 void writeNodeData(DNode *node, FILE *file){
     fprintf(file, "%d, %d, %d, ", node->pid, node->exit_status, node->num_children);
@@ -307,6 +304,23 @@ void writeNodeData(DNode *node, FILE *file){
         curr2 = curr2->next;
     }
     fprintf(file, "\n");
+}
+
+
+int is_pipe(int child,int fd){
+    char buffer[80];
+    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
+    struct stat info;
+    if (stat(buffer,&info) == -1) return -1;
+    return S_ISFIFO(info.st_mode);
+}
+
+int get_inode(int child, int fd){
+    char buffer[80];
+    sprintf(buffer,"/proc/%d/fd/%d",child,fd);
+    struct stat info;
+    if (stat(buffer,&info) == -1) return -1;
+    return info.st_ino;
 }
 
 
