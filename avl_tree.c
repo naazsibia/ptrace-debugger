@@ -47,6 +47,7 @@ AVLNode* new_node(pid_t pid)
     n->in_syscall = 0;
     n->exiting = 0;
     n->num_children = 0;
+    n->num_open_fds = 0;
     n->open_fds = 0;
     n->exit_status = -1;
     n->left   = NULL; 
@@ -130,6 +131,7 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     }
     if(add_child(parent, pid) == -2) perror("malloc");
     new->open_fds = copy_fd_list(parent->open_fds);
+    new->num_open_fds = parent->num_open_fds;
     return new_tree;
 
 
@@ -382,8 +384,8 @@ int add_fd(AVLNode* root, pid_t p,  int fd){
         perror("malloc");
         return -2;
     }
-    FDNode *curr = parent->open_fds;
     parent->num_open_fds++;
+    FDNode *curr = parent->open_fds;
     if(curr == NULL){ 
         parent->open_fds = new_fd;
         return 0;
@@ -413,6 +415,7 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
     if(curr->fd == fd) {
         parent->open_fds = curr->next;
         free(curr);
+        parent->num_open_fds--;
         return 0;
     }
     while(curr->next != NULL && (curr->next)->fd != fd){
@@ -422,6 +425,7 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
          temp = curr->next;
          curr->next = (curr->next)->next;
          free(temp);
+         parent->num_open_fds--;
          return 0;
     }
     return -1; // did not find fd

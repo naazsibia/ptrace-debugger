@@ -187,8 +187,9 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     ret_val = (long)regs.rax;
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
+    printf("pid: %d, fd1: %d, fd2: %d, inode1: %d, inode2: %d\n", child, fds[0], fds[1], get_inode(child,fds[0]), get_inode(child,fds[1]));
     add_fd(process_tree, child, get_inode(child,fds[0]));
-     add_fd(process_tree, child, get_inode(child,fds[1]));
+    add_fd(process_tree, child, get_inode(child,fds[1]));
     printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
 }
@@ -197,9 +198,10 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
  * Remove the closed fds from child's list of open fds. 
 **/void handleClose(pid_t child, int fd){
         int ret = remove_fd(process_tree, child, get_inode(child,fd));
-        if(ret != 0) return;
-            //fprintf(stderr, "FD not found\n"); -- don't need for now
-        else  printf("Process %d closed fd %d\n", child, fd);
+        if(ret != 0){
+            fprintf(stderr, "FD %d %d not found\n", fd, get_inode(child,fd)); //-- don't need for now
+        }
+        else  printf("Process %d closed fd %d, %d\n", child, fd, get_inode(child,fd));
 }
 
 // Ritvik
@@ -290,14 +292,15 @@ void writeLogData(LogNode *node, FILE *file){
 
 
 void writeNodeData(DNode *node, FILE *file){
-    fprintf(file, "%d, %d, %d, ", node->pid, node->exit_status, node->num_children);
+    // format `pid, exit_status, num children, num_openfds` 
+    fprintf(file, "%d, %d, %d, %d, ", node->pid, node->exit_status, node->num_children, node->num_open_fds);
+    print_fd_list(node->open_fds);
+
     ProcNode *curr = node->child;
     while(curr != NULL){
         fprintf(file, "%d, ", curr->pid);
         curr = curr->next;
     }
-
-    fprintf(file, "%d, ", node->num_open_fds);
     FDNode *curr2 = node->open_fds;
     while(curr2 != NULL){
         fprintf(file, "%d, ", curr2->fd);
@@ -366,7 +369,7 @@ char * extractString(pid_t child, long addr, int len) {
     j = len / long_size;
     laddr = str;
     while(i < j) {
-        data.val = ptrace(PTRACE_PEEKDATA,child, addr + i * 8,NULL);
+        data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * 8,NULL);
         memcpy(laddr, data.chars, long_size);
         ++i;
         laddr += long_size;
