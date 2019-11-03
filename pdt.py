@@ -13,7 +13,6 @@ line = csv_file.readline()
 num_processes = int(line.split()[0].strip())
 for i in range(num_processes):
     line = csv_file.readline().split(',')
-    print(line)
     process = line[0].strip()
     exit_status = int(line[1].strip())
     num_children = int(line[2].strip())
