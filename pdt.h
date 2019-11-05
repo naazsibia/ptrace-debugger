@@ -25,7 +25,7 @@ const int long_size = sizeof(long);
 /* Tracer Functions */
 int do_child(int argc, char **argv);
 int do_trace(pid_t child);
-int handleExit(pid_t child, int exit_status);
+int handleExit(pid_t child);
 void handleFork(pid_t child);
 void handlePipe(pid_t child, struct user_regs_struct regs);
 void handleWrite(pid_t child, struct user_regs_struct regs);

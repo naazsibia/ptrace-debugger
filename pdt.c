@@ -88,7 +88,7 @@ int do_trace(pid_t child){
         }
         else if (WIFSTOPPED(status)){
             if (status>>8 == (SIGTRAP | (PTRACE_EVENT_EXIT<<8))){
-                if(handleExit(newchild, WEXITSTATUS(status)) == 0) children--;
+                if(handleExit(newchild) == 0) children--;
             }
             else if (WSTOPEVENT(status) == PTRACE_EVENT_FORK){
                 handleFork(newchild);
@@ -99,7 +99,7 @@ int do_trace(pid_t child){
         AVLNode *new_child_node = search(process_tree, newchild);
         // if child has exited and isn't in a syscall, remove it from the process tree
         if(new_child_node != NULL && !new_child_node->in_syscall && new_child_node->exiting){
-            if(handleExit(newchild, new_child_node->exiting) == 0) children --;
+            if(handleExit(newchild) == 0) children --;
         }
         
         // child exited unexpectedly, can't trace it anymore
@@ -136,20 +136,23 @@ int do_trace(pid_t child){
  * and if the child node is currently in a syscall, return
  * -1. Else, return 0.
 **/
-int handleExit(pid_t child, int exit_status){
-    AVLNode *child_node = search(process_tree, child);
+int handleExit(pid_t child){
+    AVLNode * child_node = search(process_tree, child);
     if(child_node == NULL){ 
         printf("Pid %d isn't in the process tree\n", child);
         return -2;
     }
+    long exit;
+    ptrace(PTRACE_GETEVENTMSG,child,NULL,&exit);
+    //printf("Exit: %ld\n",WEXITSTATUS(exit));
     if(child_node->in_syscall){
         child_node->exiting = 1;
-        child_node->exit_status = exit_status;
+        child_node->exit_status = WEXITSTATUS(exit);
         printf("Pid %d tried to exit\n", child);
         return -1;
     }
     // edit to just pass node in
-    dnode = insert_dnode(dnode, exit_status, child_node);
+    dnode = insert_dnode(dnode, WEXITSTATUS(exit), child_node);
     process_tree = delete_node(process_tree, child);
     dead_children++;
     printf("Pid %d exited\n", child);
@@ -198,10 +201,11 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
  * Remove the closed fds from child's list of open fds. 
 **/void handleClose(pid_t child, int fd){
         int ret = remove_fd(process_tree, child, get_inode(child,fd));
-        if(ret != 0){
+       
+       /* if(ret != 0){
             fprintf(stderr, "FD %d %d not found\n", fd, get_inode(child,fd)); //-- don't need for now
         }
-        else  printf("Process %d closed fd %d, %d\n", child, fd, get_inode(child,fd));
+        else  printf("Process %d closed fd %d, %d\n", child, fd, get_inode(child,fd));*/
 }
 
 // Ritvik
