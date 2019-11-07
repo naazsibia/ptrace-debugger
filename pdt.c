@@ -67,6 +67,9 @@ int do_trace(pid_t child){
               perror("waitpid"); // if there are no child processes, will not get syscalls
               break;
         }
+        if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSEGV){
+            if (handleSegFault(newchild) == 0) children--;
+        }
         if(ptrace(PTRACE_GETREGS, newchild, NULL, &regs) == ESRCH){
             delete_node(process_tree, newchild);
             fprintf(stderr, "Child %d exited unexpectedly\n", newchild);
@@ -129,6 +132,19 @@ int do_trace(pid_t child){
 }
 // Sahid
 
+int handleSegFault(pid_t child){
+    AVLNode * child_node = search(process_tree, child);
+    if(child_node == NULL){ 
+        printf("Pid %d isn't in the process tree\n", child);
+        return -2;
+    }
+    child_node->seg_fault = 1;
+    dnode = insert_dnode(dnode, -1, child_node);
+    process_tree = delete_node(process_tree, child);
+    dead_children++;
+    printf("Pid %d exited with seg fault\n", child);
+    return 0;
+}
 /**
  * Remove child from process tree and add it to 
  * the list of dead processes. If the child node

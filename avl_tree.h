@@ -37,6 +37,7 @@ typedef struct node
     int in_syscall; // flag to be raised if process is in a syscall at the moment
     int exiting; // flag to be raised in case process in a syscall, but has exited
     long exit_status; 
+    int seg_fault;
     struct node *left; 
     struct node *right; 
     int num_children;

@@ -49,6 +49,7 @@ AVLNode* new_node(pid_t pid)
     n->num_children = 0;
     n->num_open_fds = 0;
     n->open_fds = 0;
+    n->seg_fault = 0;
     n->exit_status = -1;
     n->left   = NULL; 
     n->right  = NULL; 
