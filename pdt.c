@@ -68,7 +68,7 @@ int do_trace(pid_t child){
               break;
         }
         if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSEGV){
-            if (handleSegFault(newchild) == 0) children--;
+            if (handleSegFault(newchild) == 0) children --;
         }
         if(ptrace(PTRACE_GETREGS, newchild, NULL, &regs) == ESRCH){
             delete_node(process_tree, newchild);
@@ -135,7 +135,7 @@ int do_trace(pid_t child){
 int handleSegFault(pid_t child){
     AVLNode * child_node = search(process_tree, child);
     if(child_node == NULL){ 
-        printf("Pid %d isn't in the process tree\n", child);
+       // printf("Pid %d isn't in the process tree\n", child);
         return -2;
     }
     child_node->seg_fault = 1;
