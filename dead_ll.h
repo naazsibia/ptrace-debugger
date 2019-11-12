@@ -8,6 +8,7 @@ typedef struct dead_proc_node{
     int num_children;
     int num_open_fds;
     int exit_status;
+    int seg_fault;
     struct dead_proc_node *next; 
 } DNode;
 

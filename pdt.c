@@ -313,7 +313,7 @@ void writeLogData(LogNode *node, FILE *file){
 
 void writeNodeData(DNode *node, FILE *file){
     // format `pid, exit_status, num children, num_openfds` 
-    fprintf(file, "%d, %d, %d, %d, ", node->pid, node->exit_status, node->num_children, node->num_open_fds);
+    fprintf(file, "%d, %d, %d, %d, %d, ", node->pid, node->exit_status, node->seg_fault, node->num_children, node->num_open_fds);
 
     ProcNode *curr = node->child;
     while(curr != NULL){

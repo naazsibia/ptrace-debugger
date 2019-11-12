@@ -46,10 +46,10 @@ AVLNode* new_node(pid_t pid)
     n->pid   = pid; 
     n->in_syscall = 0;
     n->exiting = 0;
+    n->seg_fault = 0;
     n->num_children = 0;
     n->num_open_fds = 0;
     n->open_fds = 0;
-    n->seg_fault = 0;
     n->exit_status = -1;
     n->left   = NULL; 
     n->right  = NULL; 
@@ -283,6 +283,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
             root->pid = temp->pid; 
             root->in_syscall = temp->in_syscall;
             root->exiting = temp->exiting;
+            root->seg_fault = temp->seg_fault;
             root->num_children = temp->num_children;
             root->num_open_fds = temp->num_open_fds;
             root->open_fds = temp->open_fds;
