@@ -2,20 +2,39 @@ import subprocess, sys, os
 from pyvis.network import Network
 process_dict = {}
 log_dict = {}
-Physics = False
-counter = 0
+Physics = True
 mapping = {}
+
+def generateSegFaultString(info_dict,process):
+    s = "{}<br>".format(process)
+    s+= "# of children: {}<br>".format(len(info_dict["children"]))
+    s+= "# of open File Descriptors: {}<br>".format(len(info_dict["open_fds"]))
+    s+= "SEGFAULTED<br>"
+    return s
+
+def generateTitleString(info_dict,process):
+    s = "{}<br>".format(process)
+    s+= "# of children: {}<br>".format(len(info_dict["children"]))
+    s+= "# of open File Descriptors: {}<br>".format(len(info_dict["open_fds"]))
+    s+= "Exit Status: {}<br>".format(info_dict["exit"])
+    return s
+
 def generateGraph():
-    graph = Network(Directed = True)
+    counter = 0
+    graph = Network(directed = True)
     for process in process_dict:
         info_dict = process_dict[process]
         if info_dict["segfault"]:
-            graph.add_node(counter,title = process,color = "red")
+            graph.add_node(counter,title = generateSegFaultString(info_dict,process),label = process,physics = Physics,color = "red")
         else:
-            graph.add_node(counter,title = process,color = "blue")
+            graph.add_node(counter,title = generateTitleString(info_dict,process),label = process,physics = Physics,color = "#0080ff")
         mapping[process] = counter
         counter += 1
-            
+
+    for process in process_dict:
+        info_dict = process_dict[process]
+        for child in info_dict["children"]:
+            graph.add_edge(mapping[process],mapping[child],physics = Physics, color = "#0080ff")
     graph.show("test.html")
     return 0
 
@@ -57,7 +76,8 @@ def handleInput():
     generateGraph()
     return 0
 
-handleInput()
+traceProgram()
+generateGraph()
 '''
 args = ['./pdt', 'Tests/{}'.format(s)]
 print("-----Program Output-----")
