@@ -1,5 +1,6 @@
 import subprocess, sys, os
 from typing import TextIO
+import re
 from pyvis.network import Network
 process_dict = {}
 log_dict = {}
@@ -51,6 +52,7 @@ def traceProgram():
     num_processes = int(line.split(',')[0].strip())
     num_logs = int(line.split()[1].strip())
     read_processes(csv_file, num_processes)
+    read_logs(csv_file, num_logs)
     return 0
 
 def read_processes(csv_file: TextIO, num_processes):
@@ -67,6 +69,26 @@ def read_processes(csv_file: TextIO, num_processes):
         open_fds = [fd.strip() for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
         process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
     return i
+
+def read_logs(csv_file: TextIO, num_logs):
+    str_read = ""
+    node_from = node_to = None
+    for line in csv_file:
+        m = re.match(r"(W|R), (\d+), (\d+), (\S*)", line)
+        if(m):
+            if(node_from): # add previous data to dictionary
+                log_dict[node_from] = log_dict.get(node_from, {})
+                log_dict[node_from][node_to] = log_dict[node_from].get(node_to, [])
+                log_dict[node_from][node_to].append((action, str_read))
+                node_from = node_to = None
+            action = m.group(1)
+            pid = m.group(2)
+            inode = m.group(3)
+            str_read = m.group(4)
+            node_from, node_to = (pid, inode) if action == 'W' else (inode, pid)
+        else: # line from prior process continuing 
+            str_read += line
+
 
 def handleInput():
     if len(sys.argv) == 1:
