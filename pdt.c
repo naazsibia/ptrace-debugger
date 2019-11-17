@@ -234,7 +234,7 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if (currentNode->in_syscall == 0){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
         currentNode->in_syscall = 1;
-        LogNode * node = NewLogNode('W',child,get_inode(child,(int) regs.rdi),writtenString);
+        LogNode * node = NewLogNode('W',child,get_inode(child,(int) regs.rdi),writtenString,regs.rdx);
         AddLog(process_log,node);
         printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     } else{
@@ -252,7 +252,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     if (currentNode->in_syscall == 1){
     currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    LogNode * node = NewLogNode('R', child, get_inode(child,(int) regs.rdi), writtenString);
+    LogNode * node = NewLogNode('R', child, get_inode(child,(int) regs.rdi), writtenString,regs.rdx);
     AddLog(process_log,node);
     printf("%d reads %s to File Descriptor: %lld with %lld bytes\n", child, writtenString, regs.rdi, regs.rdx); //For Development Purposes
     }else{
