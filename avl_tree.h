@@ -1,6 +1,6 @@
 // for pid_t
 #include <sys/types.h>
-
+#include <sys/time.h>
 /**
  * This file contains datastructures that will be used to track processes
  * and file descriptors that pdt traces. 
@@ -34,6 +34,7 @@ typedef struct process_node{
 typedef struct node 
 { 
     int pid; 
+    struct timeval start_time, end_time;
     int in_syscall; // flag to be raised if process is in a syscall at the moment
     int exiting; // flag to be raised in case process in a syscall, but has exited
     long exit_status; 

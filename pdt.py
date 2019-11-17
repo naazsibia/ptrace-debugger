@@ -1,4 +1,5 @@
 import subprocess, sys, os
+from typing import TextIO
 from pyvis.network import Network
 process_dict = {}
 log_dict = {}
@@ -39,20 +40,33 @@ def generateGraph():
     return 0
 
 def traceProgram():
+    s = input("Program to run: ")
+    args = ['./pdt', 'Tests/{}'.format(s)]
+    print("-----Program Output-----")
+    subprocess.call(args)
+    print("-----Analysis-----")
+    print("ended")
     csv_file = open("test.csv")
     line = csv_file.readline()
-    num_processes = int(line.split()[0].strip())
+    num_processes = int(line.split(',')[0].strip())
+    num_logs = int(line.split()[1].strip())
+    read_processes(csv_file, num_processes)
+    return 0
+
+def read_processes(csv_file: TextIO, num_processes):
     for i in range(num_processes):
         line = csv_file.readline().split(',')
         process = line[0].strip()
-        exit_status = int(line[1].strip())
-        seg_fault = int(line[2].strip())
-        num_children = int(line[3].strip())
-        num_open_fds = int(line[4].strip())
-        children = [child.strip() for child in line[5: 5 + num_children]]
-        open_fds = [fd.strip() for fd in line[5 + num_children: 5 + num_children + num_open_fds]]
-        process_dict[process] = {"exit": exit_status, "children": children, "open_fds": open_fds, "segfault":seg_fault}    
-    return 0
+        start_time = line[1].strip()
+        end_time = line[2].strip()
+        exit_status = int(line[3].strip())
+        seg_fault = 1 if int(line[4].strip()) else 0
+        num_children = int(line[5].strip())
+        num_open_fds = int(line[6].strip())
+        children = [child.strip() for child in line[7: 7 + num_children]]
+        open_fds = [fd.strip() for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
+        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
+    return i
 
 def handleInput():
     if len(sys.argv) == 1:
@@ -76,16 +90,11 @@ def handleInput():
     generateGraph()
     return 0
 
+
 traceProgram()
 generateGraph()
-'''
-args = ['./pdt', 'Tests/{}'.format(s)]
-print("-----Program Output-----")
-subprocess.call(args)
-print("-----Analysis-----")
-print("ended")
-print(process_dict)
-# debugging: print("Number of processes: {}".format(num_processes))
-'''
+
+
+
 
 

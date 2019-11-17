@@ -10,6 +10,8 @@ DNode* insert_dnode(DNode* node, int exit_status, AVLNode *dead){
     }
 
     new_node->pid = dead->pid;
+    new_node->start_time = dead->start_time;
+    new_node->end_time = dead->end_time;
     new_node->exit_status = exit_status;
     new_node->seg_fault = dead->seg_fault;
     new_node->open_fds = dead->open_fds;

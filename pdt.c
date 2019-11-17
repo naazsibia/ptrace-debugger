@@ -160,7 +160,7 @@ int handleExit(pid_t child){
     }
     long exit;
     ptrace(PTRACE_GETEVENTMSG,child,NULL,&exit);
-    //printf("Exit: %ld\n",WEXITSTATUS(exit));
+    gettimeofday(&(child_node->end_time), NULL);
     if(child_node->in_syscall){
         child_node->exiting = 1;
         child_node->exit_status = WEXITSTATUS(exit);
@@ -290,7 +290,7 @@ int csvWrite(char * filename){
     FILE *file;
     if((file = fopen(filename, "w+")) == NULL) return -1;
     DNode *curr = dnode;
-    fprintf(file, "%d\n", dead_children);
+    fprintf(file, "%d, %d\n", dead_children, process_log->size);
     while(curr != NULL){
         writeNodeData(curr, file);
         curr = curr->next;
@@ -313,7 +313,8 @@ void writeLogData(LogNode *node, FILE *file){
 
 void writeNodeData(DNode *node, FILE *file){
     // format `pid, exit_status, num children, num_openfds` 
-    fprintf(file, "%d, %d, %d, %d, %d, ", node->pid, node->exit_status, node->seg_fault, node->num_children, node->num_open_fds);
+    
+    fprintf(file, "%d, %ld.%ld, %ld.%ld, %d, %d, %d, %d, ", node->pid, (long) node->start_time.tv_sec,  (long) node->start_time.tv_usec, (long) node->end_time.tv_sec,(long) node->end_time.tv_usec , node->exit_status, node->seg_fault, node->num_children, node->num_open_fds);
 
     ProcNode *curr = node->child;
     while(curr != NULL){

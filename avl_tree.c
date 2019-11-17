@@ -44,6 +44,7 @@ AVLNode* new_node(pid_t pid)
         return NULL; // malloc failed
     }
     n->pid   = pid; 
+    gettimeofday(&(n->start_time), NULL);
     n->in_syscall = 0;
     n->exiting = 0;
     n->seg_fault = 0;
@@ -281,6 +282,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
   
             // Copy the inorder successor's data to this node 
             root->pid = temp->pid; 
+            root->start_time = temp->start_time;
             root->in_syscall = temp->in_syscall;
             root->exiting = temp->exiting;
             root->seg_fault = temp->seg_fault;

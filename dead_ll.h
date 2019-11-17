@@ -3,6 +3,7 @@
 
 typedef struct dead_proc_node{
     int pid;
+    struct timeval start_time, end_time;
     FDNode *open_fds;
     ProcNode *child;
     int num_children;
