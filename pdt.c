@@ -305,7 +305,7 @@ int csvWrite(char * filename){
 }
 
 void writeLogData(LogNode *node, FILE *file){
-    fprintf(file, "%c, %d, %d, %s\n", node->action, node->process, node->fd, node->data);
+    fprintf(file, "%c, %d, %d, %ld,%s\n", node->action, node->process, node->fd, node->bytes, node->data);
 } 
 
 
@@ -314,7 +314,7 @@ void writeLogData(LogNode *node, FILE *file){
 void writeNodeData(DNode *node, FILE *file){
     // format `pid, exit_status, num children, num_openfds` 
     
-    fprintf(file, "%d, %ld.%ld, %ld.%ld, %d, %d, %d, %d, ", node->pid, (long) node->start_time.tv_sec,  (long) node->start_time.tv_usec, (long) node->end_time.tv_sec,(long) node->end_time.tv_usec , node->exit_status, node->seg_fault, node->num_children, node->num_open_fds);
+    fprintf(file, "%d, %ld.%ld, %ld.%ld, %d, %d, %d, %d, ", node->pid, node->start_time.tv_sec,  node->start_time.tv_usec, node->end_time.tv_sec, node->end_time.tv_usec , node->exit_status, node->seg_fault, node->num_children, node->num_open_fds);
 
     ProcNode *curr = node->child;
     while(curr != NULL){

@@ -1,13 +1,13 @@
 import subprocess, sys, os
 from typing import TextIO
 import re
-from pyvis.network import Network
+#from pyvis.network import Network
 process_dict = {}
 log_dict = {}
-Physics = True
-mapping = {}
+#Physics = True
+#mapping = {}
 
-def generateSegFaultString(info_dict,process):
+""" def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
     s+= "# of children: {}<br>".format(len(info_dict["children"]))
     s+= "# of open File Descriptors: {}<br>".format(len(info_dict["open_fds"]))
@@ -39,7 +39,7 @@ def generateGraph():
             graph.add_edge(mapping[process],mapping[child],physics = Physics, color = "#0080ff")
     graph.show("test.html")
     return 0
-
+ """
 def traceProgram():
     s = input("Program to run: ")
     args = ['./pdt', 'Tests/{}'.format(s)]
@@ -74,23 +74,25 @@ def read_logs(csv_file: TextIO, num_logs):
     str_read = ""
     node_from = node_to = None
     for line in csv_file:
-        m = re.match(r"(W|R), (\d+), (\d+), (\S*)", line)
+        m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
         if(m):
             if(node_from): # add previous data to dictionary
                 log_dict[node_from] = log_dict.get(node_from, {})
                 log_dict[node_from][node_to] = log_dict[node_from].get(node_to, [])
-                log_dict[node_from][node_to].append((action, str_read))
+                log_dict[node_from][node_to].append((action, str_read, bytes_read))
                 node_from = node_to = None
             action = m.group(1)
             pid = m.group(2)
             inode = m.group(3)
-            str_read = m.group(4)
+            bytes_read = m.group(4)
+            str_read = m.group(5)
             node_from, node_to = (pid, inode) if action == 'W' else (inode, pid)
         else: # line from prior process continuing 
             str_read += line
+    print(log_dict)
 
 
-def handleInput():
+""" def handleInput():
     if len(sys.argv) == 1:
         sys.stderr.write("{usage} [-p] filename [args]\n")
         return -1
@@ -110,11 +112,11 @@ def handleInput():
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     traceProgram()
     generateGraph()
-    return 0
+    return 0 """
 
 
 traceProgram()
-generateGraph()
+#generateGraph()
 
 
 
