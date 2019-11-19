@@ -104,10 +104,7 @@ def read_logs(csv_file: TextIO, num_logs):
         m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
         if(m):
             if(pid): # add previous data to dictionary
-                log_dict[pid] = log_dict.get(pid, {})
-                log_dict[pid][inode] = log_dict[pid].get(inode, [])
-                log_dict[pid][inode].append((action, str_read, bytes_read))
-                inode_log_dict.setdefault(inode, []).append((pid, action, str_read, bytes_read)) 
+                add_data_to_log(pid, inode, (action, str_read, bytes_read))
                 pid = inode = None
             action = m.group(1)
             pid = m.group(2)
@@ -116,8 +113,16 @@ def read_logs(csv_file: TextIO, num_logs):
             str_read = m.group(5)
         else: # line from prior process continuing 
             str_read += line
-    #print(log_dict)
+    if(pid):
+        add_data_to_log(pid, inode, (action, str_read, bytes_read))    
+    print(log_dict)
     #print(inode_log_dict)
+
+def add_data_to_log(pid: int, inode: int, data: tuple):
+    log_dict[pid] = log_dict.get(pid, {})
+    log_dict[pid][inode] = log_dict[pid].get(inode, [])
+    log_dict[pid][inode].append(data)
+    inode_log_dict.setdefault(inode, []).append((pid, ) + data) 
 
 
 def handleInput():
