@@ -89,8 +89,13 @@ def generateGraph():
         else:
             graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
     
-
-
+    for process in process_dict:
+        info_dict = process_dict[process]
+        for (inode,pipe) in info_dict["open_fds"]:
+            if pipe == "1":
+                graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "red")
+            else:
+                graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "red")
     graph.show("{}.html".format(program_name))
     return 0 
 
@@ -124,7 +129,6 @@ def read_processes(csv_file: TextIO, num_processes):
         children = [child.strip() for child in line[7: 7 + num_children]]
         open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
         process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
-    print(process_dict)
     return i
 
 def read_logs(csv_file: TextIO, num_logs):
@@ -222,7 +226,7 @@ def generate_gannt_chart():
 
 
 traceProgram()
-generate_gannt_chart()
+#generate_gannt_chart()
 generateGraph()
 
 
