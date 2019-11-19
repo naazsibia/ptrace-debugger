@@ -104,9 +104,9 @@ def read_logs(csv_file: TextIO, num_logs):
         m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
         if(m):
             if(node_from): # add previous data to dictionary
-                log_dict[node_from] = log_dict.get(node_from, {})
-                log_dict[node_from][node_to] = log_dict[node_from].get(node_to, [])
-                log_dict[node_from][node_to].append((action, str_read, bytes_read))
+                log_dict[pid] = log_dict.get(node_from, {})
+                log_dict[pid][inode] = log_dict[node_from].get(node_to, [])
+                log_dict[pid][inode].append((action, str_read, bytes_read))
                 inode_log_dict.setdefault(inode, []).append((pid, action, str_read, bytes_read)) 
                 node_from = node_to = None
             action = m.group(1)
@@ -114,7 +114,6 @@ def read_logs(csv_file: TextIO, num_logs):
             inode = m.group(3)
             bytes_read = m.group(4)
             str_read = m.group(5)
-            node_from, node_to = (pid, inode) if action == 'W' else (inode, pid)
         else: # line from prior process continuing 
             str_read += line
     #print(log_dict)
