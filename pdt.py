@@ -61,7 +61,36 @@ def generateGraph():
         mapping[inode] = counter
         counter += 1
 
-    #Add connections between file descriptors and nodes
+
+     #Add connections between file descriptors and nodes
+    strings = {}
+    modes = {}
+    for process in log_dict:
+        for inode in log_dict[process]:
+            s = "{},{}<br>".format(process,inode)
+            modes[(process,inode)] = {}
+            modes[(process,inode)] = {"W":0,"R":0}
+            for (mode, stringWritten, bytesWritten) in log_dict[process][inode]:
+                if mode == "W":
+                    s+= "wrote {} with {} bytes<br>".format(stringWritten,bytesWritten)
+                    modes[(process,inode)]["W"] = 1
+                else:
+                    s+= "read {} with {} bytes<br>".format(stringWritten,bytesWritten)
+                    modes[(process,inode)]["R"] = 1
+            strings[(process,inode)] = s 
+
+    for (process,inode) in strings:
+        info_dict = modes[(process,inode)]
+        if info_dict["W"] and info_dict["R"]:
+            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
+            graph.add_edge(mapping[inode], mapping[process],physics = Physics, color = "#0080ff")
+        elif info_dict["W"]:
+            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
+        else:
+            graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
+    
+
+
     graph.show("{}.html".format(program_name))
     return 0 
 
@@ -115,7 +144,6 @@ def read_logs(csv_file: TextIO, num_logs):
             str_read += line
     if(pid):
         add_data_to_log(pid, inode, (action, str_read, bytes_read))    
-    print(log_dict)
     #print(inode_log_dict)
 
 def add_data_to_log(pid: int, inode: int, data: tuple):
