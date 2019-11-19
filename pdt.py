@@ -2,11 +2,16 @@ import subprocess, sys, os
 from typing import TextIO
 import re
 from pyvis.network import Network
+import plotly
+import pandas as pd
+import plotly.graph_objs as go
+from plotly.offline import init_notebook_mode, iplot
 process_dict = {}
 log_dict = {}
 inode_log_dict = {}
 Physics = True
 mapping = {}
+program_name = ""
 
 def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
@@ -27,7 +32,7 @@ def generateGraph():
     graph = Network(directed = True)
     for process in process_dict:
         info_dict = process_dict[process]
-        if info_dict["segfault"]:
+        if info_dict["seg_fault"]:
             graph.add_node(counter,title = generateSegFaultString(info_dict,process),label = process,physics = Physics,color = "red")
         else:
             graph.add_node(counter,title = generateTitleString(info_dict,process),label = process,physics = Physics,color = "#0080ff")
@@ -42,26 +47,28 @@ def generateGraph():
     return 0 
 
 def traceProgram():
-    s = input("Program to run: ")
-    args = ['./pdt', 'Tests/{}'.format(s)]
+    global program_name 
+    program_name = input("Program to run: ").strip()
+    """ args = ['./pdt', 'Tests/{}'.format(program_name)]
     print("-----Program Output-----")
     subprocess.call(args)
     print("-----Analysis-----")
-    print("ended")
-    csv_file = open("test.csv")
-    line = csv_file.readline()
-    num_processes = int(line.split(',')[0].strip())
-    num_logs = int(line.split()[1].strip())
-    read_processes(csv_file, num_processes)
-    read_logs(csv_file, num_logs)
+    print("ended") 
+    with open("test.csv", encoding="utf8", errors='ignore') as csv_file: """
+    with open("{}.csv".format(program_name), encoding="utf8", errors='ignore') as csv_file:
+        line = csv_file.readline()
+        num_processes = int(line.split(',')[0].strip())
+        num_logs = int(line.split()[1].strip())
+        read_processes(csv_file, num_processes)
+        read_logs(csv_file, num_logs)
     return 0
 
 def read_processes(csv_file: TextIO, num_processes):
     for i in range(num_processes):
         line = csv_file.readline().split(',')
         process = line[0].strip()
-        start_time = line[1].strip()
-        end_time = line[2].strip()
+        start_time = float(line[1].strip())
+        end_time = float(line[2].strip())
         exit_status = int(line[3].strip())
         seg_fault = 1 if int(line[4].strip()) else 0
         num_children = int(line[5].strip())
@@ -91,8 +98,8 @@ def read_logs(csv_file: TextIO, num_logs):
             node_from, node_to = (pid, inode) if action == 'W' else (inode, pid)
         else: # line from prior process continuing 
             str_read += line
-    print(log_dict)
-    print(inode_log_dict)
+    #print(log_dict)
+    #print(inode_log_dict)
 
 
 def handleInput():
@@ -115,10 +122,55 @@ def handleInput():
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     traceProgram()
     generateGraph()
-    return 0
+    return 0 
+
+
+# Disable
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
+def generate_gannt_chart():
+    blockPrint()
+    init_notebook_mode(connected=True)
+    enablePrint()
+    df_list = []
+    process_list = [(process, process_dict[process]["start_time"], process_dict[process]["end_time"]) for process in process_dict]
+    for process in process_list:
+        df_list.append(dict(Task = process[0], Start = process[1], Finish = process[2]))
+    df = pd.DataFrame(df_list)
+    df['duration'] = df["Finish"] - df["Start"]
+    df.sort_values(by=['Start'], ascending=False)
+    df['Task'] = df['Task'].astype(str)
+    fig = go.Figure(
+    layout = {
+        'barmode': 'stack',
+        'xaxis': {'automargin': True},
+        'yaxis': {'autorange':"reversed", 'automargin': False}}
+    )
+    fig.update_layout(
+        title={
+        'text': program_name.upper()}
+    )
+    for process, process_df in df.groupby('Task'):
+        fig.add_bar(x=process_df.duration,
+                    y=process_df.Task,
+                    base=process_df.Start,
+                    orientation='h',
+                    showlegend=False,
+                    name=process,
+                    hovertext="exit status: {}".format(process_dict[process]["exit"])
+                    )
+    
+    plotly.offline.plot(fig, filename='gannt_chart.html')
 
 
 traceProgram()
+generate_gannt_chart()
+
 generateGraph()
 
 
