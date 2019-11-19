@@ -99,16 +99,16 @@ def read_processes(csv_file: TextIO, num_processes):
 
 def read_logs(csv_file: TextIO, num_logs):
     str_read = ""
-    node_from = node_to = None
+    pid =inode = None
     for line in csv_file:
         m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
         if(m):
-            if(node_from): # add previous data to dictionary
-                log_dict[pid] = log_dict.get(node_from, {})
-                log_dict[pid][inode] = log_dict[node_from].get(node_to, [])
+            if(pid): # add previous data to dictionary
+                log_dict[pid] = log_dict.get(pid, {})
+                log_dict[pid][inode] = log_dict[pid].get(inode, [])
                 log_dict[pid][inode].append((action, str_read, bytes_read))
                 inode_log_dict.setdefault(inode, []).append((pid, action, str_read, bytes_read)) 
-                node_from = node_to = None
+                pid = inode = None
             action = m.group(1)
             pid = m.group(2)
             inode = m.group(3)
