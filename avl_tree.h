@@ -12,6 +12,7 @@
 **/
 typedef struct fd_node{
    int fd;
+   char write;
    struct fd_node *next;
 } FDNode;
 
@@ -153,7 +154,7 @@ int add_child(AVLNode *parent, pid_t pid);
  * in the tree at the given root,
  * Returns 0 on succes, and -1 on malloc error
 **/
-int add_fd(AVLNode* root, pid_t p,  int fd);
+int add_fd(AVLNode* root, pid_t p,  int fd, char write);
 
 /**
  * Remove node with the given fd  from node n's list of open file descriptors.

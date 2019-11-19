@@ -207,8 +207,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
     printf("pid: %d, fd1: %d, fd2: %d, inode1: %d, inode2: %d\n", child, fds[0], fds[1], get_inode(child,fds[0]), get_inode(child,fds[1]));
-    add_fd(process_tree, child, get_inode(child,fds[0]));
-    add_fd(process_tree, child, get_inode(child,fds[1]));
+    add_fd(process_tree, child, get_inode(child,fds[0]), 0);
+    add_fd(process_tree, child, get_inode(child,fds[1]), 1);
     printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
 }
@@ -323,7 +323,7 @@ void writeNodeData(DNode *node, FILE *file){
     }
     FDNode *curr2 = node->open_fds;
     while(curr2 != NULL){
-        fprintf(file, "%d, ", curr2->fd);
+        fprintf(file, "(%d %d), ", curr2->fd, curr2->write);
         curr2 = curr2->next;
     }
     fprintf(file, "\n");

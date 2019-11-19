@@ -13,6 +13,68 @@ Physics = False
 mapping = {}
 program_name = ""
 
+
+def traceProgram():
+    global program_name 
+    program_name = input("Program to run: ").strip()
+    """ args = ['./pdt', 'Tests/{}'.format(program_name)]
+    print("-----Program Output-----")
+    subprocess.call(args)
+    print("-----Analysis-----")
+    print("ended") 
+    with open("test.csv", encoding="utf8", errors='ignore') as csv_file: """
+    with open("{}.csv".format(program_name), encoding="utf8", errors='ignore') as csv_file:
+        line = csv_file.readline()
+        num_processes = int(line.split(',')[0].strip())
+        num_logs = int(line.split()[1].strip())
+        read_processes(csv_file, num_processes)
+        read_logs(csv_file, num_logs)
+    return 0
+
+def read_processes(csv_file: TextIO, num_processes):
+    for i in range(num_processes):
+        line = csv_file.readline().split(',')
+        process = line[0].strip()
+        start_time = float(line[1].strip())
+        end_time = float(line[2].strip())
+        exit_status = int(line[3].strip())
+        seg_fault = 1 if int(line[4].strip()) else 0
+        num_children = int(line[5].strip())
+        num_open_fds = int(line[6].strip())
+        children = [child.strip() for child in line[7: 7 + num_children]]
+        open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
+        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
+    print(process_dict)
+    return i
+
+def read_logs(csv_file: TextIO, num_logs):
+    str_read = ""
+    pid =inode = None
+    for line in csv_file:
+        m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
+        if(m):
+            if(pid): # add previous data to dictionary
+                add_data_to_log(pid, inode, (action, str_read, bytes_read))
+                pid = inode = None
+            action = m.group(1)
+            pid = m.group(2)
+            inode = m.group(3)
+            bytes_read = m.group(4)
+            str_read = m.group(5)
+        else: # line from prior process continuing 
+            str_read += line
+    if(pid):
+        add_data_to_log(pid, inode, (action, str_read, bytes_read))    
+    print(log_dict)
+    #print(inode_log_dict)
+
+def add_data_to_log(pid: int, inode: int, data: tuple):
+    log_dict[pid] = log_dict.get(pid, {})
+    log_dict[pid][inode] = log_dict[pid].get(inode, [])
+    log_dict[pid][inode].append(data)
+    inode_log_dict.setdefault(inode, []).append((pid, ) + data) 
+
+
 def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
     s+= "# of children: {}<br>".format(len(info_dict["children"]))
@@ -65,64 +127,9 @@ def generateGraph():
     graph.show("{}.html".format(program_name))
     return 0 
 
-def traceProgram():
-    global program_name 
-    program_name = input("Program to run: ").strip()
-    """ args = ['./pdt', 'Tests/{}'.format(program_name)]
-    print("-----Program Output-----")
-    subprocess.call(args)
-    print("-----Analysis-----")
-    print("ended") 
-    with open("test.csv", encoding="utf8", errors='ignore') as csv_file: """
-    with open("{}.csv".format(program_name), encoding="utf8", errors='ignore') as csv_file:
-        line = csv_file.readline()
-        num_processes = int(line.split(',')[0].strip())
-        num_logs = int(line.split()[1].strip())
-        read_processes(csv_file, num_processes)
-        read_logs(csv_file, num_logs)
-    return 0
 
-def read_processes(csv_file: TextIO, num_processes):
-    for i in range(num_processes):
-        line = csv_file.readline().split(',')
-        process = line[0].strip()
-        start_time = float(line[1].strip())
-        end_time = float(line[2].strip())
-        exit_status = int(line[3].strip())
-        seg_fault = 1 if int(line[4].strip()) else 0
-        num_children = int(line[5].strip())
-        num_open_fds = int(line[6].strip())
-        children = [child.strip() for child in line[7: 7 + num_children]]
-        open_fds = [fd.strip() for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
-        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
-    return i
 
-def read_logs(csv_file: TextIO, num_logs):
-    str_read = ""
-    pid =inode = None
-    for line in csv_file:
-        m = re.match(r"(W|R), (\d+), (\d+), (\d+),(\S*)", line)
-        if(m):
-            if(pid): # add previous data to dictionary
-                add_data_to_log(pid, inode, (action, str_read, bytes_read))
-                pid = inode = None
-            action = m.group(1)
-            pid = m.group(2)
-            inode = m.group(3)
-            bytes_read = m.group(4)
-            str_read = m.group(5)
-        else: # line from prior process continuing 
-            str_read += line
-    if(pid):
-        add_data_to_log(pid, inode, (action, str_read, bytes_read))    
-    print(log_dict)
-    #print(inode_log_dict)
 
-def add_data_to_log(pid: int, inode: int, data: tuple):
-    log_dict[pid] = log_dict.get(pid, {})
-    log_dict[pid][inode] = log_dict[pid].get(inode, [])
-    log_dict[pid][inode].append(data)
-    inode_log_dict.setdefault(inode, []).append((pid, ) + data) 
 
 
 def handleInput():
@@ -192,7 +199,7 @@ def generate_gannt_chart():
 
 
 traceProgram()
-#generate_gannt_chart()
+generate_gannt_chart()
 generateGraph()
 
 

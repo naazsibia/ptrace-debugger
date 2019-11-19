@@ -378,12 +378,13 @@ int add_child(AVLNode *parent, pid_t pid){
  * p is in the tree at root.
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
-int add_fd(AVLNode* root, pid_t p,  int fd){
+int add_fd(AVLNode* root, pid_t p,  int fd, char write){
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
     FDNode* new_fd = (FDNode*) malloc(sizeof(FDNode)); 
     new_fd->fd = fd;
     new_fd->next = NULL;
+    new_fd->write = write;
     if(new_fd == NULL){
         perror("malloc");
         return -2;
@@ -462,6 +463,7 @@ FDNode* copy_fd_list(FDNode *head){
         return head;
     }
     new_head->fd = head->fd;
+    new_head->write = head->write;
     new_head->next =  copy_fd_list(head->next);
     return new_head;
 }
