@@ -9,7 +9,7 @@ from plotly.offline import init_notebook_mode, iplot
 process_dict = {}
 log_dict = {}
 inode_log_dict = {}
-Physics = True
+Physics = False
 mapping = {}
 program_name = ""
 
@@ -27,9 +27,19 @@ def generateTitleString(info_dict,process):
     s+= "Exit Status: {}<br>".format(info_dict["exit"])
     return s
 
+def generateInodeString(lst,inode):
+    s = "{}<br>".format(inode)
+    for (process, mode, string, bytesWritten) in lst:
+        if mode == "W":
+            s+= "{} wrote {} with {} bytes<br>".format(process,string,bytesWritten)
+        else:
+            s+= "{} read {} with {} bytes<br>".format(process,string,bytesWritten)
+    s+= "Total number of entries: {}<br>".format(len(lst))
+    return s
 def generateGraph():
     counter = 0
     graph = Network(directed = True)
+    #Add mapping for every process
     for process in process_dict:
         info_dict = process_dict[process]
         if info_dict["seg_fault"]:
@@ -39,11 +49,20 @@ def generateGraph():
         mapping[process] = counter
         counter += 1
 
+    #Add connections between processes
     for process in process_dict:
         info_dict = process_dict[process]
         for child in info_dict["children"]:
             graph.add_edge(mapping[process],mapping[child],physics = Physics, color = "#0080ff")
-    graph.show("test.html")
+
+    #Add file descriptor nodes
+    for inode in inode_log_dict:
+        graph.add_node(counter,title = generateInodeString(inode_log_dict[inode],inode),label = inode,Physics = Physics, color = "#FFA500", shape = "diamond")
+        mapping[inode] = counter
+        counter += 1
+
+    #Add connections between file descriptors and nodes
+    graph.show("{}.html".format(program_name))
     return 0 
 
 def traceProgram():
@@ -169,8 +188,7 @@ def generate_gannt_chart():
 
 
 traceProgram()
-generate_gannt_chart()
-
+#generate_gannt_chart()
 generateGraph()
 
 
