@@ -306,11 +306,11 @@ int csvWrite(char * filename){
 
 void writeLogData(LogNode *node, FILE *file){
     //
-    fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes, node->data);
+    fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes);
     for(int i = 0; i < node->bytes; i++){
-        fprintf("%2x", (node->data)[i]);
+        fprintf(file,"%2x", (node->data)[i]);
     }
-    fprintf("\n");
+    fprintf(file,"\n");
 } 
 
 
