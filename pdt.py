@@ -149,9 +149,8 @@ def read_logs(csv_file: TextIO, num_logs):
                 #print(bytes.fromhex(str_read[2:-1]).decode('utf-8'))
                 #print(":".join("{:02x}".format(ord(c)) for c in str_read))
                 s = bytes.fromhex(str_read[:]).decode('utf-8')
-
                 s1 = "".join([c for c in s if c in string.printable])
-                if s1 == "":
+                if s1.strip() == "":
                    s1 = str_read
                 add_data_to_log(pid, inode, (action, s1, bytes_read)) 
                 pid = inode = None
