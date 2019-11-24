@@ -308,7 +308,8 @@ void writeLogData(LogNode *node, FILE *file){
     //
     fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes);
     for(int i = 0; i < node->bytes; i++){
-        fprintf(file,"%2x", (node->data)[i]);
+        if (i > 0) fprintf(file, ":");
+        fprintf(file,"%02x", (node->data)[i]);
     }
     fprintf(file,"\n");
 } 
