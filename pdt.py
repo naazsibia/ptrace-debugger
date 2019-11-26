@@ -13,7 +13,7 @@ inode_log_dict = {}
 Physics = False
 mapping = {}
 program_name = ""
-
+# (node, children, return status, fds -- fd output)
 def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
     s+= "# of children: {}<br>".format(len(info_dict["children"]))
@@ -127,10 +127,10 @@ def read_processes(csv_file: TextIO, num_processes):
         seg_fault = 1 if int(line[4].strip()) else 0
         num_children = int(line[5].strip())
         num_open_fds = int(line[6].strip())
-        children = [child.strip() for child in line[7: 7 + num_children]]
-        open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[7 + num_children: 7 + num_children + num_open_fds]]
-        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds}    
-    #print(process_dict)
+        num_fds = int(line[7].strip())
+        children = [child.strip() for child in line[8: 8 + num_children]]
+        open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[8 + num_children: 8 + num_children + num_open_fds]]
+        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds, "num_fds": num_fds}    
     return i
 
 def read_logs(csv_file: TextIO, num_logs):
@@ -236,7 +236,7 @@ def generate_gannt_chart():
                     name=process,
                     hovertext="exit status: {}".format(process_dict[process]["exit"])
                     )
-    plotly.offline.plot(fig, filename='gannt_chart.html')
+    plotly.offline.plot(fig, filename='{}_gannt_chart.html'.format(program_name), auto_open=False)
 
 
 traceProgram()
