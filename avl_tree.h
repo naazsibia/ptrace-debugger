@@ -43,6 +43,7 @@ typedef struct node
     struct node *left; 
     struct node *right; 
     int num_children;
+    int num_fds;
     int num_open_fds;
     ProcNode *child; // list of children
     FDNode *open_fds; // list of open fds

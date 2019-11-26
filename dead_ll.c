@@ -16,6 +16,7 @@ DNode* insert_dnode(DNode* node, int exit_status, AVLNode *dead){
     new_node->seg_fault = dead->seg_fault;
     new_node->open_fds = dead->open_fds;
     new_node->num_children = dead->num_children;
+    new_node->num_fds = dead->num_fds;
     new_node->num_open_fds = dead->num_open_fds;
     new_node->child = dead->child;
     new_node->next = NULL;

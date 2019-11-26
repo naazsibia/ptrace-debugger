@@ -49,6 +49,7 @@ AVLNode* new_node(pid_t pid)
     n->exiting = 0;
     n->seg_fault = 0;
     n->num_children = 0;
+    n->num_fds = 0;
     n->num_open_fds = 0;
     n->open_fds = 0;
     n->exit_status = -1;
@@ -134,6 +135,7 @@ AVLNode* insert(AVLNode*n, pid_t pid, pid_t ppid){
     if(add_child(parent, pid) == -2) perror("malloc");
     new->open_fds = copy_fd_list(parent->open_fds);
     new->num_open_fds = parent->num_open_fds;
+    new->num_fds = parent->num_fds;
     return new_tree;
 
 
@@ -288,6 +290,7 @@ AVLNode* delete_node(AVLNode* root, pid_t p)
             root->seg_fault = temp->seg_fault;
             root->num_children = temp->num_children;
             root->num_open_fds = temp->num_open_fds;
+            root->num_fds = temp->num_fds;
             root->open_fds = temp->open_fds;
             root->child = temp->child;
             // Delete the inorder successor 
@@ -390,6 +393,7 @@ int add_fd(AVLNode* root, pid_t p,  int fd, char write){
         return -2;
     }
     parent->num_open_fds++;
+    parent->num_fds++;
     FDNode *curr = parent->open_fds;
     if(curr == NULL){ 
         parent->open_fds = new_fd;
