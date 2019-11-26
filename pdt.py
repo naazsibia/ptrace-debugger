@@ -163,7 +163,11 @@ def read_logs(csv_file: TextIO, num_logs):
         else: # line from prior process continuing 
             str_read += line
     if(pid):
-        add_data_to_log(pid, inode, (action, str_read, bytes_read))    
+        s = bytes.fromhex(str_read[:]).decode('utf-8')
+        s1 = "".join([c for c in s if c in string.printable])
+        if s1.strip() == "":
+            s1 = str_read
+        add_data_to_log(pid, inode, (action, s1, bytes_read))    
     #print(inode_log_dict)
 
 def add_data_to_log(pid: int, inode: int, data: tuple):
