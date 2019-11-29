@@ -7,12 +7,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
 import string
-process_dict = {}
-log_dict = {}
-inode_log_dict = {}
-Physics = False
-mapping = {}
-program_name = ""
+
 # (node, children, return status, fds -- fd output)
 def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
@@ -100,24 +95,23 @@ def generateGraph():
     graph.show("{}.html".format(program_name))
     return 0 
 
-def traceProgram():
-    global program_name 
-    program_name = input("Program to run: ").strip()
+def traceProgram(program: str, process_dict, log_dict, inode_log_dict):
+
     """ args = ['./pdt', 'Tests/{}'.format(program_name)]
     print("-----Program Output-----")
     subprocess.call(args)
     print("-----Analysis-----")
     print("ended") 
     with open("test.csv", encoding="utf8", errors='ignore') as csv_file: """
-    with open("{}.csv".format(program_name), encoding="utf8", errors='ignore') as csv_file:
+    with open("{}.csv".format(program), encoding="utf8", errors='ignore') as csv_file:
         line = csv_file.readline()
         num_processes = int(line.split(',')[0].strip())
         num_logs = int(line.split()[1].strip())
-        read_processes(csv_file, num_processes)
-        read_logs(csv_file, num_logs)
-    return 0
+        read_processes(csv_file, num_processes, process_dict)
+        read_logs(csv_file, num_logs, log_dict, inode_log_dict)
+    return process_dict, log_dict
 
-def read_processes(csv_file: TextIO, num_processes):
+def read_processes(csv_file: TextIO, num_processes, process_dict: dict):
     for i in range(num_processes):
         line = csv_file.readline().split(',')
         process = line[0].strip()
@@ -131,9 +125,9 @@ def read_processes(csv_file: TextIO, num_processes):
         children = [child.strip() for child in line[8: 8 + num_children]]
         open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[8 + num_children: 8 + num_children + num_open_fds]]
         process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds, "num_fds": num_fds}    
-    return i
+    return process_dict
 
-def read_logs(csv_file: TextIO, num_logs):
+def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
     str_read = ""
     pid =inode = None
     for line in csv_file:
@@ -152,7 +146,7 @@ def read_logs(csv_file: TextIO, num_logs):
                 s1 = "".join([c for c in s if c in string.printable])
                 if s1.strip() == "":
                    s1 = str_read
-                add_data_to_log(pid, inode, (action, s1, bytes_read)) 
+                add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict) 
                 pid = inode = None
             action = m.group(1)
             pid = m.group(2)
@@ -167,10 +161,10 @@ def read_logs(csv_file: TextIO, num_logs):
         s1 = "".join([c for c in s if c in string.printable])
         if s1.strip() == "":
             s1 = str_read
-        add_data_to_log(pid, inode, (action, s1, bytes_read))    
-    #print(inode_log_dict)
+        add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict)    
+    return log_dict
 
-def add_data_to_log(pid: int, inode: int, data: tuple):
+def add_data_to_log(pid: int, inode: int, data: tuple, log_dict: dict, inode_log_dict: dict):
     log_dict[pid] = log_dict.get(pid, {})
     log_dict[pid][inode] = log_dict[pid].get(inode, [])
     log_dict[pid][inode].append(data)
@@ -196,7 +190,9 @@ def handleInput():
     ListOfArgs = ListOfArgs[1:]
     args = ['./pdt','Tests/{}'.format(filename)]+ListOfArgs
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-    traceProgram()
+    process_dict = {}
+    log_dict = {}
+    traceProgram(process_dict, log_dict)
     generateGraph()
     return 0 
 
@@ -238,10 +234,17 @@ def generate_gannt_chart():
                     )
     plotly.offline.plot(fig, filename='{}_gannt_chart.html'.format(program_name), auto_open=False)
 
-
-traceProgram()
-generate_gannt_chart()
-generateGraph()
+if __name__ == '__main__':
+    process_dict = {}
+    log_dict = {}
+    inode_log_dict = {}
+    Physics = False
+    mapping = {}
+    program_name = ""
+    program_name = input("Program to run: ").strip()
+    traceProgram(program_name, process_dict, log_dict, inode_log_dict)
+    generate_gannt_chart()
+    generateGraph()
 
 
 
