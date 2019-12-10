@@ -6,6 +6,7 @@ DNode *dnode;
 LogStart * process_log = NULL;
 int dead_children = 0;
 
+
 int main(int argc, char *argv[]) {
     process_tree = NULL;
     dnode = NULL;
@@ -130,8 +131,11 @@ int do_trace(pid_t child){
 
 
 }
-// Sahid
 
+/**
+* Returns 0 ff child in Process Tree and sets its segfaulted flag to 1. 
+* Else returns -2.
+**/
 int handleSegFault(pid_t child){
     AVLNode * child_node = search(process_tree, child);
     if(child_node == NULL){ 
@@ -215,7 +219,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 
 /**
  * Remove the closed fds from child's list of open fds. 
-**/void handleClose(pid_t child, int fd){
+**/
+void handleClose(pid_t child, int fd){
         int ret = remove_fd(process_tree, child, get_inode(child,fd));
        
        /* if(ret != 0){
@@ -224,7 +229,10 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
         else  printf("Process %d closed fd %d, %d\n", child, fd, get_inode(child,fd));*/
 }
 
-// Ritvik
+/**
+ * Extracts data from memory offset in registers for the write call and 
+ * saves it as a log node 
+**/
 void handleWrite(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
     if(currentNode == NULL) {
@@ -243,7 +251,11 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     }
 }
 
-//Ritvik
+
+/**
+ * Extracts data from memory offset in registers for the read call and 
+ * saves it as a log node 
+**/
 void handleRead(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
     if(currentNode == NULL ) return;
@@ -261,7 +273,7 @@ void handleRead(pid_t child, struct user_regs_struct regs){
 }
 
 
-//Naaz
+
 /**
  * Switches child's in_syscall in avl_tree and returns
  * the current value of in_syscall.
@@ -286,56 +298,10 @@ int in_syscall(pid_t child){
     if(child_node != NULL) return child_node->in_syscall;
 }
 
-int csvWrite(char * filename){
-    FILE *file;
-    if((file = fopen(filename, "w+")) == NULL) return -1;
-    DNode *curr = dnode;
-    fprintf(file, "%d, %d\n", dead_children, process_log->size);
-    while(curr != NULL){
-        writeNodeData(curr, file);
-        curr = curr->next;
-    }
-    LogNode *start = process_log->Head;
-    while(start != NULL){
-        writeLogData(start, file);
-        start = start->next;
-    }
-    return 0;
-
-}
-
-void writeLogData(LogNode *node, FILE *file){
-    //
-    fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes);
-    for(int i = 0; i < node->bytes; i++){
-        if (i > 0) fprintf(file, ":");
-        fprintf(file,"%02X", (node->data)[i]);
-    }
-    fprintf(file,"\n");
-} 
-
-
-
-
-void writeNodeData(DNode *node, FILE *file){
-    // format `pid, exit_status, num children, num_openfds` 
-    
-    fprintf(file, "%d, %ld.%ld, %ld.%ld, %d, %d, %d, %d, %d, ", node->pid, node->start_time.tv_sec,  node->start_time.tv_usec, node->end_time.tv_sec, node->end_time.tv_usec , node->exit_status, node->seg_fault, node->num_children, node->num_open_fds, node->num_fds);
-
-    ProcNode *curr = node->child;
-    while(curr != NULL){
-        fprintf(file, "%d, ", curr->pid);
-        curr = curr->next;
-    }
-    FDNode *curr2 = node->open_fds;
-    while(curr2 != NULL){
-        fprintf(file, "(%d %d), ", curr2->fd, curr2->write);
-        curr2 = curr2->next;
-    }
-    fprintf(file, "\n");
-}
-
-
+/**
+ * Return -1 if stat is unsuccessful in locating the fd, 0 if file is not a FIFO
+ * and non-zero value otherwise
+**/
 int is_pipe(int child,int fd){
     char buffer[80];
     sprintf(buffer,"/proc/%d/fd/%d",child,fd);
@@ -344,6 +310,9 @@ int is_pipe(int child,int fd){
     return S_ISFIFO(info.st_mode);
 }
 
+/**
+ * Get inode for a given fd. Return -1 if stat is unsuccessful in locating the fd
+**/
 int get_inode(int child, int fd){
     char buffer[80];
     sprintf(buffer,"/proc/%d/fd/%d",child,fd);
@@ -381,7 +350,9 @@ int * extractArray(pid_t child, long addr, int len){
     }
     return array;
 }
-
+/**
+ * Return a string of len characters at a given address given process pid
+**/
 char * extractString(pid_t child, long addr, int len) { 
     char * str = (char *)malloc((len+1) * sizeof(char));
     if(str == NULL) perror("malloc");
@@ -407,4 +378,60 @@ char * extractString(pid_t child, long addr, int len) {
     }
     str[len] = '\0';
     return str;
+}
+
+/**
+ * Writes extracted data to csv with name filename
+**/
+int csvWrite(char * filename){
+    FILE *file;
+    if((file = fopen(filename, "w+")) == NULL) return -1;
+    DNode *curr = dnode;
+    fprintf(file, "%d, %d\n", dead_children, process_log->size);
+    while(curr != NULL){
+        writeNodeData(curr, file);
+        curr = curr->next;
+    }
+    LogNode *start = process_log->Head;
+    while(start != NULL){
+        writeLogData(start, file);
+        start = start->next;
+    }
+    return 0;
+
+}
+/**
+ * Writes log data for node to csv file
+**/
+void writeLogData(LogNode *node, FILE *file){
+    //
+    fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes);
+    for(int i = 0; i < node->bytes; i++){
+        if (i > 0) fprintf(file, ":");
+        fprintf(file,"%02X", (node->data)[i]);
+    }
+    fprintf(file,"\n");
+} 
+
+
+
+/**
+ * Writes process tree data to csv file
+**/
+void writeNodeData(DNode *node, FILE *file){
+    // format `pid, exit_status, num children, num_openfds` 
+    
+    fprintf(file, "%d, %ld.%ld, %ld.%ld, %d, %d, %d, %d, %d, ", node->pid, node->start_time.tv_sec,  node->start_time.tv_usec, node->end_time.tv_sec, node->end_time.tv_usec , node->exit_status, node->seg_fault, node->num_children, node->num_open_fds, node->num_fds);
+
+    ProcNode *curr = node->child;
+    while(curr != NULL){
+        fprintf(file, "%d, ", curr->pid);
+        curr = curr->next;
+    }
+    FDNode *curr2 = node->open_fds;
+    while(curr2 != NULL){
+        fprintf(file, "(%d %d), ", curr2->fd, curr2->write);
+        curr2 = curr2->next;
+    }
+    fprintf(file, "\n");
 }
