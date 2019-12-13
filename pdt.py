@@ -201,7 +201,7 @@ def handleInput():
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     process_dict = {}
     log_dict = {}
-    traceProgram(program_name, process_dict, log_dict, inode_log_dict)
+    traceProgram(filename, ListOfArgs, process_dict, log_dict, inode_log_dict)
     generateGraph()
     return 0 
 
@@ -229,7 +229,6 @@ def generate_gannt_chart():
     fig = go.Figure(
         layout = {
             'barmode': 'stack',
-            'xaxis': {'automargin': True},
             'yaxis': {'automargin': True, 'autorange': 'reversed'}}
     )
     for process, process_df in df.groupby('Task'):
