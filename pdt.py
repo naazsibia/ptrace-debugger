@@ -8,7 +8,6 @@ import plotly.graph_objs as go
 from plotly.offline import init_notebook_mode, iplot
 import string
 
-# (node, children, return status, fds -- fd output)
 
 #generates the hoverable title string for a segfaulted process
 def generateSegFaultString(info_dict,process):
@@ -104,9 +103,11 @@ def generateGraph():
     graph.show("{}.html".format(program_name))
     return 0 
 
-def traceProgram(program: str, process_dict, log_dict, inode_log_dict):
-
-    args = ['./pdt', 'Tests/{}'.format(program)]
+def traceProgram(program: str, args: list, process_dict, log_dict, inode_log_dict):
+    if(args != []):
+        args = ['./pdt', program, args]
+    else:
+        args = ['./pdt', program]
     print("-----Program Output-----")
     subprocess.call(args)
     print("-----Analysis-----")
@@ -200,7 +201,7 @@ def handleInput():
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     process_dict = {}
     log_dict = {}
-    traceProgram(process_dict, log_dict)
+    traceProgram(program_name, process_dict, log_dict, inode_log_dict)
     generateGraph()
     return 0 
 
@@ -249,8 +250,9 @@ if __name__ == '__main__':
     Physics = False
     mapping = {}
     program_name = ""
-    program_name = input("Program to run: ").strip()
-    traceProgram(program_name, process_dict, log_dict, inode_log_dict)
+    args = input("Program to run: ").strip().split()
+    program_name = args[0]
+    traceProgram(program_name, args[1:], process_dict, log_dict, inode_log_dict)
     generate_gannt_chart()
     generateGraph()
 
