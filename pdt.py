@@ -9,13 +9,15 @@ from plotly.offline import init_notebook_mode, iplot
 import string
 
 # (node, children, return status, fds -- fd output)
+
+#generates the hoverable title string for a segfaulted process
 def generateSegFaultString(info_dict,process):
     s = "{}<br>".format(process)
     s+= "# of children: {}<br>".format(len(info_dict["children"]))
     s+= "# of open File Descriptors: {}<br>".format(len(info_dict["open_fds"]))
     s+= "SEGFAULTED<br>"
     return s
-
+#generates the hoverable title string for a normal process
 def generateTitleString(info_dict,process):
     s = "{}<br>".format(process)
     s+= "# of children: {}<br>".format(len(info_dict["children"]))
@@ -23,6 +25,7 @@ def generateTitleString(info_dict,process):
     s+= "Exit Status: {}<br>".format(info_dict["exit"])
     return s
 
+#generates the hoverable title string for a pipe
 def generateInodeString(lst,inode):
     s = "{}<br>".format(inode)
     for (process, mode, string, bytesWritten) in lst:
@@ -32,6 +35,8 @@ def generateInodeString(lst,inode):
             s+= "{} read {} with {} bytes<br>".format(process,string,bytesWritten)
     s+= "Total number of entries: {}<br>".format(len(lst))
     return s
+
+#generates the process graph
 def generateGraph():
     counter = 0
     graph = Network(directed = True)
@@ -75,6 +80,7 @@ def generateGraph():
                     modes[(process,inode)]["R"] = 1
             strings[(process,inode)] = s 
 
+    #Add connections between pipes and processes
     for (process,inode) in strings:
         info_dict = modes[(process,inode)]
         if info_dict["W"] and info_dict["R"]:
@@ -85,6 +91,7 @@ def generateGraph():
         else:
             graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
     
+    #Add open file descriptors
     for process in process_dict:
         info_dict = process_dict[process]
         for (inode,pipe) in info_dict["open_fds"]:
@@ -92,6 +99,8 @@ def generateGraph():
                 graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "red")
             else:
                 graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "red")
+
+    #Saves the graph to an html file
     graph.show("{}.html".format(program_name))
     return 0 
 
