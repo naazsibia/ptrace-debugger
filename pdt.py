@@ -229,6 +229,7 @@ def generate_gannt_chart():
     fig = go.Figure(
         layout = {
             'barmode': 'stack',
+            'xaxis': {'automargin': True},
             'yaxis': {'automargin': True, 'autorange': 'reversed'}}
     )
     for process, process_df in df.groupby('Task'):
@@ -252,8 +253,8 @@ if __name__ == '__main__':
     args = input("Program to run: ").strip().split()
     program_name = args[0]
     traceProgram(program_name, args[1:], process_dict, log_dict, inode_log_dict)
-    generate_gannt_chart()
     generateGraph()
+    generate_gannt_chart()
 
 
 
