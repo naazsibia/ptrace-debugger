@@ -106,13 +106,12 @@ def generateGraph():
 
 def traceProgram(program: str, process_dict, log_dict, inode_log_dict):
 
-    """ args = ['./pdt', 'Tests/{}'.format(program_name)]
+    args = ['./pdt', 'Tests/{}'.format(program)]
     print("-----Program Output-----")
     subprocess.call(args)
     print("-----Analysis-----")
     print("ended") 
-    with open("test.csv", encoding="utf8", errors='ignore') as csv_file: """
-    with open("{}.csv".format(program), encoding="utf8", errors='ignore') as csv_file:
+    with open("test.csv", encoding="utf8", errors='ignore') as csv_file: 
         line = csv_file.readline()
         num_processes = int(line.split(',')[0].strip())
         num_logs = int(line.split()[1].strip())
