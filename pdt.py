@@ -103,11 +103,10 @@ def generateGraph():
     graph.show("{}.html".format(program_name))
     return 0 
 
-def traceProgram(program: str, args: list, process_dict, log_dict, inode_log_dict):
-    if(args != []):
-        args = ['./pdt', program, args]
-    else:
-        args = ['./pdt', program]
+def traceProgram(program: str, args_input: list, process_dict, log_dict, inode_log_dict):
+    args = ['./pdt', program]
+    args.extend(args_input)
+    print(args)
     print("-----Program Output-----")
     subprocess.call(args)
     print("-----Analysis-----")
