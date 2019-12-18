@@ -1,0 +1,26 @@
+Week 1 (Prior to Sprint1):
+    Discussed Project Outline and marking schemes, looked into different tutorials for ptrace to complete in the next week (Refer to tutorials document).
+
+Week 2 (Prior to Sprint1):
+    Discussed patterns and ideas from the previous week's tutorials that could be used for our project design. Made the initial user stories and split up work for Sprint 1.
+
+Week 3:
+
+Week 4:
+
+Week 5:
+
+Week 6:
+
+Week 7:
+
+Week 8:
+
+Week 9:
+
+Week 10:
+
+Week 11:
+
+Week 12:
+
