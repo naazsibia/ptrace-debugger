@@ -248,12 +248,11 @@ if __name__ == '__main__':
     inode_log_dict = {}
     Physics = False
     mapping = {}
-    program_name = ""
-    args = input("Program to run: ").strip().split()
-    program_name = args[0]
-    traceProgram(program_name, args[1:], process_dict, log_dict, inode_log_dict)
+    program_name = sys.argv[1]
+    traceProgram(program_name, sys.argv[2:], process_dict, log_dict, inode_log_dict)
     generateGraph()
     generate_gannt_chart()
+  
 
 
 
