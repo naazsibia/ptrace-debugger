@@ -148,10 +148,12 @@ def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
             if(pid): # add previous data to dictionary
                 # use is_ascii for str_read - non-printable characters accept for \n and \t
                 # check to see that byte == something between 32 and 126, or 9, 12, 13  (tab, newline, carriadge return)
-                #print(bytes.fromhex(str_read[2:-1]).decode('utf-8'))
-                #print(":".join("{:02x}".format(ord(c)) for c in str_read))
-                s = bytes.fromhex(str_read[:]).decode('utf-8')
-                s1 = "".join([c for c in s if c in string.printable])
+                
+                try:
+                    s = bytes.fromhex(str_read[:]).decode('utf-8')
+                    s1 = "".join([c for c in s if c in string.printable])
+                except ValueError:
+                    s1 = ""
                 if s1.strip() == "":
                    s1 = str_read
                 add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict) 
@@ -165,10 +167,14 @@ def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
         else: # line from prior process continuing 
             str_read += line
     if(pid):
-        s = bytes.fromhex(str_read[:]).decode('utf-8')
-        s1 = "".join([c for c in s if c in string.printable])
+        try:
+            s = bytes.fromhex(str_read[:]).decode('utf-8')
+            s1 = "".join([c for c in s if c in string.printable])
+        except ValueError:
+            s1 = ""
         if s1.strip() == "":
             s1 = str_read
+        
         add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict)    
     return log_dict
 
@@ -177,6 +183,7 @@ def add_data_to_log(pid: int, inode: int, data: tuple, log_dict: dict, inode_log
     log_dict[pid][inode] = log_dict[pid].get(inode, [])
     log_dict[pid][inode].append(data)
     inode_log_dict.setdefault(inode, []).append((pid, ) + data) 
+    print("Data is |{}|".format(data))
 
 
 
