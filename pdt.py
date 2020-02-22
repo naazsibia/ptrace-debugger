@@ -94,6 +94,10 @@ def generateGraph():
     for process in process_dict:
         info_dict = process_dict[process]
         for (inode,pipe) in info_dict["open_fds"]:
+            if mapping.get(inode,-1) == -1:
+                graph.add_node(counter,title = generateInodeString([],inode),label = inode,Physics = Physics, color = "#FFA500", shape = "diamond")
+                mapping[inode] = counter
+                counter += 1
             if pipe == "1":
                 graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "red")
             else:
@@ -203,7 +207,7 @@ def handleInput():
         
     filename = ListOfArgs[0]
     ListOfArgs = ListOfArgs[1:]
-    args = ['./pdt','Tests/{}'.format(filename)]+ListOfArgs
+    args = ['./pdt','{}'.format(filename)]+ListOfArgs
     subprocess.call(args,stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     process_dict = {}
     log_dict = {}
@@ -249,6 +253,34 @@ def generate_gannt_chart():
                     )
     plotly.offline.plot(fig, filename='{}_gannt_chart.html'.format(program_name), auto_open=False)
 
+def generateErrorLog():
+    hasSegfault = False
+    hasopenFD = False
+    #Checking for Segfaults and Uno:
+    for process in process_dict:
+        info_dict = process_dict[process]
+        if info_dict["seg_fault"]:
+            hasSegfault = True
+        if len(info_dict["open_fds"]) != 0:
+            hasopenFD = True
+    
+    if hasSegfault or hasopenFD:
+        file = open("error.log","w+")
+        if hasSegfault:
+            file.write("A process segfaulted.")
+        elif hasopenFD:
+            file.write("Unclosed file descriptors detected:\n")
+            for process in process_dict:
+                info_dict = process_dict[process]
+                for (inode,pipe) in info_dict["open_fds"]:
+                    write_string = ''
+                    if pipe == "1": #Write end
+                        write_string = "(PIPE=WRITE,PID= %s,FD = %s)\n" %(process,inode)
+                    else: #Read end
+                        write_string = "(PIPE=READ,PID= %s,FD = %s)\n" %(process,inode)
+                    file.write(write_string)
+        file.close()
+    
 if __name__ == '__main__':
     process_dict = {}
     log_dict = {}
@@ -258,6 +290,7 @@ if __name__ == '__main__':
     program_name = sys.argv[1]
     traceProgram(program_name, sys.argv[2:], process_dict, log_dict, inode_log_dict)
     generateGraph()
+    generateErrorLog()
     generate_gannt_chart()
   
 
