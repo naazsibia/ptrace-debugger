@@ -275,9 +275,9 @@ def generateErrorLog():
                 for (inode,pipe) in info_dict["open_fds"]:
                     write_string = ''
                     if pipe == "1": #Write end
-                        write_string = "(PIPE=WRITE,PID= %s,FD = %s)\n" %(process,inode)
+                        write_string = "(PIPE=WRITE,PID= %s,INODE = %s)\n" %(process,inode)
                     else: #Read end
-                        write_string = "(PIPE=READ,PID= %s,FD = %s)\n" %(process,inode)
+                        write_string = "(PIPE=READ,PID= %s,INODE = %s)\n" %(process,inode)
                     file.write(write_string)
         file.close()
     
