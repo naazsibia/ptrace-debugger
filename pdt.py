@@ -25,8 +25,8 @@ def generateTitleString(info_dict,process):
     return s
 
 #generates the hoverable title string for a pipe
-def generateInodeString(lst,inode):
-    s = "{}<br>".format(inode)
+def generateInodeString(lst, inode, fd):
+    s = "FD: {}, Inode: {}<br>".format(fd, inode)
     for (process, mode, string, bytesWritten) in lst:
         if mode == "W":
             s+= "{} wrote {} with {} bytes<br>".format(process,string,bytesWritten)
@@ -56,8 +56,9 @@ def generateGraph():
             graph.add_edge(mapping[process],mapping[child],physics = Physics, color = "#0080ff")
 
     #Add file descriptor nodes
-    for inode in inode_log_dict:
-        graph.add_node(counter,title = generateInodeString(inode_log_dict[inode],inode),label = inode,Physics = Physics, color = "#FFA500", shape = "diamond")
+    for inode in inode_log_dict.keys():
+        fd = inode_fd.get(inode, "unknown")
+        graph.add_node(counter,title = generateInodeString(inode_log_dict[inode], inode, fd),label = fd,Physics = Physics, color = "#FFA500", shape = "diamond")
         mapping[inode] = counter
         counter += 1
 
@@ -93,9 +94,9 @@ def generateGraph():
     #Add open file descriptors
     for process in process_dict:
         info_dict = process_dict[process]
-        for (inode,pipe) in info_dict["open_fds"]:
+        for (inode, fd, pipe) in info_dict["open_fds"]:
             if mapping.get(inode,-1) == -1:
-                graph.add_node(counter,title = generateInodeString([],inode),label = inode,Physics = Physics, color = "#FFA500", shape = "diamond")
+                graph.add_node(counter,title = generateInodeString([], inode, fd),label = inode,Physics = Physics, color = "#FFA500", shape = "diamond")
                 mapping[inode] = counter
                 counter += 1
             if pipe == "1":
@@ -136,7 +137,8 @@ def read_processes(csv_file: TextIO, num_processes, process_dict: dict):
         num_fds = int(line[7].strip())
         children = [child.strip() for child in line[8: 8 + num_children]]
         open_fds = [tuple(fd.strip()[1:-1].split()) for fd in line[8 + num_children: 8 + num_children + num_open_fds]]
-        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds, "num_fds": num_fds}    
+        process_dict[process] = {"start_time": start_time, "end_time": end_time, "exit": exit_status, "seg_fault": seg_fault,  "children": children, "open_fds": open_fds, "num_fds": num_fds}
+    print(process_dict)    
     return process_dict
 
 def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
@@ -147,7 +149,7 @@ def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
 
         # 02000000
 
-        m = re.match(r"(W|R), (\d+), (\d+), (\d+), ([a-fA-F0-9-:]+$)\n", line)
+        m = re.match(r"(W|R), (\d+), (\d+), (\d+), (\d+), ([a-fA-F0-9-:]+$)\n", line)
         if(m):
             if(pid): # add previous data to dictionary
                 # use is_ascii for str_read - non-printable characters accept for \n and \t
@@ -160,13 +162,14 @@ def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
                     s1 = ""
                 if s1.strip() == "":
                    s1 = str_read
-                add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict) 
+                add_data_to_log(pid, fd, inode, (action, s1, bytes_read), log_dict, inode_log_dict) 
                 pid = inode = None
             action = m.group(1)
             pid = m.group(2)
-            inode = m.group(3)
-            bytes_read = m.group(4)
-            str_read = m.group(5)
+            fd = m.group(3)
+            inode = m.group(4)
+            bytes_read = m.group(5)
+            str_read = m.group(6)
             str_read = str_read.replace(":", " ")
         else: # line from prior process continuing 
             str_read += line
@@ -179,14 +182,15 @@ def read_logs(csv_file: TextIO, num_logs, log_dict: dict, inode_log_dict: dict):
         if s1.strip() == "":
             s1 = str_read
         
-        add_data_to_log(pid, inode, (action, s1, bytes_read), log_dict, inode_log_dict)    
+        add_data_to_log(pid, fd, inode, (action, s1, bytes_read), log_dict, inode_log_dict)    
     return log_dict
 
-def add_data_to_log(pid: int, inode: int, data: tuple, log_dict: dict, inode_log_dict: dict):
+def add_data_to_log(pid: int, fd: int, inode: int, data: tuple, log_dict: dict, inode_log_dict: dict):
     log_dict[pid] = log_dict.get(pid, {})
     log_dict[pid][inode] = log_dict[pid].get(inode, [])
     log_dict[pid][inode].append(data)
     inode_log_dict.setdefault(inode, []).append((pid, ) + data) 
+    inode_fd[inode] = fd
     print("Data is |{}|".format(data))
 
 
@@ -272,12 +276,12 @@ def generateErrorLog():
             file.write("Unclosed file descriptors detected:\n")
             for process in process_dict:
                 info_dict = process_dict[process]
-                for (inode,pipe) in info_dict["open_fds"]:
+                for (inode, fd, pipe) in info_dict["open_fds"]:
                     write_string = ''
                     if pipe == "1": #Write end
-                        write_string = "(PIPE=WRITE,PID= %s,INODE = %s)\n" %(process,inode)
+                        write_string = "(PIPE=WRITE,PID= %s,FD: %s, INODE = %s)\n" %(process, fd, inode)
                     else: #Read end
-                        write_string = "(PIPE=READ,PID= %s,INODE = %s)\n" %(process,inode)
+                        write_string = "(PIPE=READ,PID= %s,FD: %s, INODE = %s)\n" %(process, fd, inode)
                     file.write(write_string)
         file.close()
     
@@ -285,6 +289,7 @@ if __name__ == '__main__':
     process_dict = {}
     log_dict = {}
     inode_log_dict = {}
+    inode_fd = {}
     Physics = False
     mapping = {}
     program_name = sys.argv[1]

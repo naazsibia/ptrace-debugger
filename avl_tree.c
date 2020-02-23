@@ -381,11 +381,12 @@ int add_child(AVLNode *parent, pid_t pid){
  * p is in the tree at root.
  * Returns 0 on succes, and -1 if no node with pid exists and -2 on malloc error
 **/
-int add_fd(AVLNode* root, pid_t p,  int fd, char write){
+int add_fd(AVLNode* root, pid_t p,  int fd, int inode, char write){
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
     FDNode* new_fd = (FDNode*) malloc(sizeof(FDNode)); 
     new_fd->fd = fd;
+    new_fd->inode = inode;
     new_fd->next = NULL;
     new_fd->write = write;
     if(new_fd == NULL){
@@ -413,7 +414,7 @@ int add_fd(AVLNode* root, pid_t p,  int fd, char write){
  * process node with pid p has. p is in the tree at root.
  * Return 0 on success, and -1 if the node is not found
 **/
-int remove_fd(AVLNode* root, pid_t p, int fd){
+int remove_fd(AVLNode* root, pid_t p, int inode){
     FDNode *temp = NULL;
     AVLNode *parent = search(root, p);
     if(parent == NULL) return -1;
@@ -421,16 +422,16 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
     // no open fds
     if(curr == NULL) return -1;
     // head is fd
-    if(curr->fd == fd) {
+    if(curr->inode == inode) {
         parent->open_fds = curr->next;
         free(curr);
         parent->num_open_fds--;
         return 0;
     }
-    while(curr->next != NULL && (curr->next)->fd != fd){
+    while(curr->next != NULL && (curr->next)->inode != inode){
         curr = curr->next;  
     }
-    if(curr->next != NULL && (curr->next)->fd == fd){
+    if(curr->next != NULL && (curr->next)->inode == inode){
          temp = curr->next;
          curr->next = (curr->next)->next;
          free(temp);
@@ -445,10 +446,10 @@ int remove_fd(AVLNode* root, pid_t p, int fd){
 /**
  * Return 1 if fd is in the fd list, else return 0. 
 **/
-int fd_in_list(FDNode *head, int fd){
+int fd_in_list(FDNode *head, int inode){
     FDNode *curr = head;
     while(curr != NULL){
-        if(curr->fd == fd) return 1;
+        if(curr->inode == inode) return 1;
         curr = curr->next;
     }
     return 0;
@@ -467,6 +468,7 @@ FDNode* copy_fd_list(FDNode *head){
         return head;
     }
     new_head->fd = head->fd;
+    new_head->inode = head->inode;
     new_head->write = head->write;
     new_head->next =  copy_fd_list(head->next);
     return new_head;

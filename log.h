@@ -6,6 +6,7 @@ typedef struct LogNode{
     char action;
     int process;
     int fd;
+    int inode;
     char * data;
     long bytes;
     struct LogNode *next;
@@ -20,4 +21,4 @@ typedef struct Log{
 void AddLog(LogStart *, LogNode *);
 void Initialize(LogStart ** );
 LogNode * RemoveLog(LogStart *);
-LogNode * NewLogNode(char action,int child,int fd,char * data, long bytes);
+LogNode * NewLogNode(char action,int child, int fd, int inode, char * data, long bytes);

@@ -143,6 +143,7 @@ int handleSegFault(pid_t child){
         return -2;
     }
     child_node->seg_fault = 1;
+    gettimeofday(&(child_node->end_time), NULL);
     dnode = insert_dnode(dnode, -1, child_node);
     process_tree = delete_node(process_tree, child);
     dead_children++;
@@ -211,8 +212,8 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
     addr = (long)regs.rdi;
     fds = extractArray(child, addr, 8);
     printf("pid: %d, fd1: %d, fd2: %d, inode1: %d, inode2: %d\n", child, fds[0], fds[1], get_inode(child,fds[0]), get_inode(child,fds[1]));
-    add_fd(process_tree, child, get_inode(child,fds[0]), 0);
-    add_fd(process_tree, child, get_inode(child,fds[1]), 1);
+    add_fd(process_tree, child, fds[0], get_inode(child,fds[0]), 0);
+    add_fd(process_tree, child, fds[1], get_inode(child,fds[1]), 1);
     printf("Pid %d piped fds %d, %d\n", child, fds[0], fds[1]);
     free(fds);
 }
@@ -222,11 +223,6 @@ void handlePipe(pid_t child, struct user_regs_struct regs){
 **/
 void handleClose(pid_t child, int fd){
         int ret = remove_fd(process_tree, child, get_inode(child,fd));
-       
-       /* if(ret != 0){
-            fprintf(stderr, "FD %d %d not found\n", fd, get_inode(child,fd)); //-- don't need for now
-        }
-        else  printf("Process %d closed fd %d, %d\n", child, fd, get_inode(child,fd));*/
 }
 
 /**
@@ -238,11 +234,11 @@ void handleWrite(pid_t child, struct user_regs_struct regs){
     if(currentNode == NULL) {
         return;
     }
-    if (fd_in_list(currentNode->open_fds,get_inode(child,regs.rdi)) == 0) return;
+    if (fd_in_list(currentNode->open_fds, get_inode(child,regs.rdi)) == 0) return;
     if (currentNode->in_syscall == 0){
         char * writtenString = extractString(child,regs.rsi,regs.rdx);
         currentNode->in_syscall = 1;
-        LogNode * node = NewLogNode('W',child,get_inode(child,(int) regs.rdi),writtenString,regs.rdx);
+        LogNode * node = NewLogNode('W',child, (int) regs.rdi, get_inode(child,(int) regs.rdi), writtenString,regs.rdx);
         AddLog(process_log,node);
         printf("%d wrote %s to File Descriptor: %lld with %lld bytes\n",child,writtenString,regs.rdi,regs.rdx); //For Development Purposes
     } else{
@@ -260,11 +256,11 @@ void handleRead(pid_t child, struct user_regs_struct regs){
     AVLNode * currentNode = search(process_tree,child);
     if(currentNode == NULL ) return;
     int fd = (int) regs.rdi;
-    if (fd_in_list(currentNode->open_fds,get_inode(child,fd)) == 0) return;
+    if (fd_in_list(currentNode->open_fds, get_inode(child,fd)) == 0) return;
     if (currentNode->in_syscall == 1){
     currentNode->in_syscall = 0;
     char * writtenString = extractString(child,regs.rsi,regs.rdx);
-    LogNode * node = NewLogNode('R', child, get_inode(child,(int) regs.rdi), writtenString,regs.rdx);
+    LogNode * node = NewLogNode('R', child, (int) regs.rdi, get_inode(child,(int) regs.rdi), writtenString,regs.rdx);
     AddLog(process_log,node);
     printf("%d reads %s to File Descriptor: %lld with %lld bytes\n", child, writtenString, regs.rdi, regs.rdx); //For Development Purposes
     }else{
@@ -405,7 +401,7 @@ int csvWrite(char * filename){
 **/
 void writeLogData(LogNode *node, FILE *file){
     //
-    fprintf(file, "%c, %d, %d, %ld, ", node->action, node->process, node->fd, node->bytes);
+    fprintf(file, "%c, %d, %d, %d, %ld, ", node->action, node->process, node->fd, node->inode, node->bytes);
     for(int i = 0; i < node->bytes; i++){
         if (i > 0) fprintf(file, ":");
         fprintf(file,"%02hhX", (node->data)[i]);
@@ -430,7 +426,7 @@ void writeNodeData(DNode *node, FILE *file){
     }
     FDNode *curr2 = node->open_fds;
     while(curr2 != NULL){
-        fprintf(file, "(%d %d), ", curr2->fd, curr2->write);
+        fprintf(file, "(%d %d %d), ", curr2->inode, curr2->fd, curr2->write);
         curr2 = curr2->next;
     }
     fprintf(file, "\n");
