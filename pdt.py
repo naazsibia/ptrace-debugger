@@ -84,12 +84,12 @@ def generateGraph():
     for (process,inode) in strings:
         info_dict = modes[(process,inode)]
         if info_dict["W"] and info_dict["R"]:
-            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
-            graph.add_edge(mapping[inode], mapping[process],physics = Physics, color = "#0080ff")
+            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#32a852", title = strings[(process,inode)])
+            graph.add_edge(mapping[inode], mapping[process],physics = Physics, color = "#32a852")
         elif info_dict["W"]:
-            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
+            graph.add_edge(mapping[process],mapping[inode],physics = Physics, color = "#32a852", title = strings[(process,inode)])
         else:
-            graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "#0080ff", title = strings[(process,inode)])
+            graph.add_edge(mapping[inode],mapping[process],physics = Physics, color = "#32a852", title = strings[(process,inode)])
     
     #Add open file descriptors
     for process in process_dict:
