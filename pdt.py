@@ -286,6 +286,7 @@ def generateErrorLog():
         file.close()
     
 if __name__ == '__main__':
+    os.environ["ASAN_OPTIONS"]="detect_leaks=0"
     process_dict = {}
     log_dict = {}
     inode_log_dict = {}
