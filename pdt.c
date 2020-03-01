@@ -53,6 +53,7 @@ int do_trace(pid_t child){
         return -1;
     }
 	int status;
+    int specialForkWait = 0;
     pid_t newchild;
     struct user_regs_struct regs;
     if(waitpid(child, &status, 0) < 0) perror("waitpid");
@@ -63,7 +64,11 @@ int do_trace(pid_t child){
     
 
     while (children > 0){
+        if (!specialForkWait){
         newchild = waitpid(-1, &status, __WALL);
+        }else{
+            waitpid(newchild,&status,__WALL);
+        }
         if(newchild < 0){
               perror("waitpid"); // if there are no child processes, will not get syscalls
               break;
@@ -88,7 +93,13 @@ int do_trace(pid_t child){
             }
             else if (regs.orig_rax == SYS_close){
                 handleClose(newchild, regs.rdi);
-            } 
+            }else if (regs.orig_rax == SYS_clone || regs.orig_rax == SYS_fork){
+                if (!specialForkWait){
+                    specialForkWait = 1;
+                }else{
+                    specialForkWait = 0;
+                }
+            }
         }
         else if (WIFSTOPPED(status)){
             if (status>>8 == (SIGTRAP | (PTRACE_EVENT_EXIT<<8))){
